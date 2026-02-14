@@ -2,16 +2,11 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 const port = 3000;
-const userRepository = require("./repositories/userRepository");
+const userRouter = require("./routes/users");
 
-app.get("/users", async (req, res) => {
-    try {
-        const [users] = await userRepository.listUser();
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    } 
-});
+
+// Use of routes defined in /routes/users.js with /users prefix
+app.use("/users", userRouter);
 
 //Base Endpoint
 app.get("/", (req, res) => {
@@ -20,7 +15,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// 6. Démarrer le serveur
+// Server launch
 app.listen(port, () => {
   console.log(`Serveur Express démarré sur le port ${port}`);
 });
