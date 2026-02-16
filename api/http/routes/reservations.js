@@ -32,7 +32,7 @@ router.post("/", async (req, res) => {
     const { user_id, number_of_people, date, time, note } = req.body;
     try {
         const reservation = await reservationRepository.createReservation(user_id, number_of_people, date, time, note);
-        res.status(201).json(reservation);
+        res.status(201).json({ message: "Reservation created successfully", reservation });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -78,7 +78,7 @@ router.patch ("/:id/validate", async (req, res) => {
     const id = req.params.id;
     try {
         const reservation = await reservationRepository.validateReservation(id);
-        res.json(reservation);
+        res.json({ message: "Reservation validated successfully", reservation });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
