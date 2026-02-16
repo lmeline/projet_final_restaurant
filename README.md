@@ -9,7 +9,7 @@
 - XAMPP or anything else that can launch a MySQL server
   
 
-### Install node dependencies (express, mask, mysql2...) :
+### Install node dependencies (express, mysql2...) :
 ```bash
 npm i
 ```
@@ -23,7 +23,7 @@ mask -h
   
 
 ### Database Creation
-You can create the database used in this project with the following command, the argument `--seed` or `-s` will also seed the database with some test data after db creation (Do not use in production !!)
+You can create the database used in this project with the following command:
 ```bash
 mask create-database
 ```
@@ -31,10 +31,6 @@ mask create-database
 #### Without mask:
 ```bash
 node database/database_creator.js
-```
-with seed :
-```bash
-SHOULD_SEED="true" node database/database_creator.js
 ```
 
   

@@ -2,7 +2,6 @@ require('dotenv').config();
 const fs = require('fs');
 const mysql = require('mysql2/promise');
 const path = require('path');
-const shouldSeed = process.env.SHOULD_SEED === "true";
 
 
 
@@ -20,9 +19,6 @@ const sql_files = fs.readdirSync(path.join(__dirname, "sources"))
     });
 
     for (const file of sql_files) {
-        if (file === "2_restaurant_db_seed.sql" && !shouldSeed) {
-            break;
-        }
         const sqlRequest = fs.readFileSync(path.join(__dirname, "sources", file))
             .toString();
 
