@@ -16,7 +16,7 @@ npm i
   
 
 #### *Mask*
-*the taskrunner [Mask](https://github.com/jacobdeichert/mask) will be used to run commands in this project, for more informations about theses commands, you can check the `maskFile.md` or run the following command in your shell :* 
+*You can use the taskrunner [Mask](https://github.com/jacobdeichert/mask) to run commands in this project, for more informations about the mask commands, you can check the `maskFile.md` or run the following command in your shell :* 
 ```bash
 mask -h
 ```
@@ -27,10 +27,24 @@ You can create the database used in this project with the following command, the
 ```bash
 mask create-database
 ```
+
+#### Without mask:
+```bash
+node database/database_creator.js
+```
+with seed :
+```bash
+SHOULD_SEED="true" node database/database_creator.js
+```
+
   
 
 ### Launch server
 You can launch the server with the following command :
 ```bash
 mask launch-server
+```
+#### without mask :
+```bash
+npm start
 ```

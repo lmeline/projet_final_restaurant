@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const app = express();
 app.use(express.json());
@@ -17,5 +18,5 @@ app.get("/", (req, res) => {
 
 // Server launch
 app.listen(port, () => {
-  console.log(`Serveur Express démarré sur le port ${port}`);
+  console.log(`Express server launched, listening on ${process.env.DB_HOST}:${port}`);
 });
