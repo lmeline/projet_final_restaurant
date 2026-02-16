@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 const port = 3000;
-const userRouter = require("./routes/users");
+const userRouter = require("./http/routes/users");
 
 
 // Use of routes defined in /routes/users.js with /users prefix

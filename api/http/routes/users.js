@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const userRepository = require("../repositories/userRepository");
+const userRepository = require("../../repositories/userRepository");
 
 router.get("/", async (req, res) => {
     try {
