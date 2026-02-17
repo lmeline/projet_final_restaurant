@@ -4,10 +4,15 @@ const app = express();
 app.use(express.json());
 const port = 3000;
 const userRouter = require("./http/routes/users");
+const authRouter = require("./http/routes/auth");
+const authMiddleware = require("./http/middlewares/auth");
+const adminMiddleware = require("./http/middlewares/admin");
 
 
-// Use of routes defined in /routes/users.js with /users prefix
-app.use("/users", userRouter);
+// Example of using middlewares, here Auth middleware check if the token is present THEN admin middleware check if the user is admin
+app.use("/users", authMiddleware, adminMiddleware,  userRouter);
+
+app.use("/auth", authRouter);
 
 //Base Endpoint
 app.get("/", (req, res) => {
