@@ -3,7 +3,10 @@ const router = express.Router();
 const reservationRepository = require("../../repositories/reservationRepository");
 const adminMiddleware = require("../middlewares/admin");
 const clientMiddleware = require("../middlewares/client");
-
+const { 
+    validateCreateReservationRequest, 
+    validateUpdateReservationRequest 
+} = require("../validators/reservationValidator");
 
 // Method to list all reservations, only accessible by admin
 router.get("/", adminMiddleware, async (req, res) => {
@@ -32,27 +35,36 @@ router.get("/my-reservations", async (req, res) => {
 
 // Methode for creating a reservation, only accessible by clients
 router.post("/", clientMiddleware, async (req, res) => {
-    const { number_of_people, date, time, note } = req.body;
+    const validationResult = validateCreateReservationRequest(req.body);
 
+    if (validationResult.error) {
+        return res.status(400).json(validationResult);
+    }
+
+    const { number_of_people, date, time, note } = req.body;
     const user_id = req.user.id || req.user.userId;
 
     try {
         const reservation = await reservationRepository.createReservation(user_id, number_of_people, date, time, note);
         res.status(201).json({ message: "Reservation created successfully", reservation });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(400).json({ error: error.message });
     }
 });
 
 // Method for updating a reservation
 router.put("/:id", async (req, res) => {
     const { id } = req.params; 
-    const updates = req.body;  
+    const validationResult = validateUpdateReservationRequest(req.body);
+
+    if (validationResult.error) {
+        return res.status(400).json(validationResult);
+    }
 
     const user_id = req.user.id || req.user.userId;
 
     try {
-        const result = await reservationRepository.updateReservation(id, updates, user_id);
+        const result = await reservationRepository.updateReservation(id, validationResult, user_id);
         res.json({
             message: "Reservation updated successfully",
             affectedRows: result.affectedRows
@@ -73,6 +85,11 @@ router.put("/:id", async (req, res) => {
 // Method for deleting a reservation
 router.delete("/:id", async (req, res) => {
     const id = req.params.id;
+
+    if (!id) {
+        return res.status(400).json({ error: "Reservation ID is required" });
+    }
+
     const user_id = req.user.id || req.user.userId;
     try {
         const result = await reservationRepository.deleteReservation(id, user_id);
