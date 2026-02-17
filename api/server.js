@@ -4,10 +4,11 @@ const app = express();
 app.use(express.json());
 const port = 3000;
 const userRouter = require("./http/routes/users");
-
+const menuRouter = require("./http/routes/menu");
 
 // Use of routes defined in /routes/users.js with /users prefix
 app.use("/users", userRouter);
+app.use("/menu", menuRouter);
 
 //Base Endpoint
 app.get("/", (req, res) => {
