@@ -1,5 +1,6 @@
 const db = require("./config/db");
 
+
 class ReservationRepository {
     pool = db;
 
@@ -67,7 +68,7 @@ class ReservationRepository {
 
         // Insert the new reservation into the database
         const [rows] = await this.pool.query(
-            "INSERT INTO reservations (number_of_people, date, time, status, user_id, note) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO reservations (number_of_people, date, time, status, user_id, comment) VALUES (?, ?, ?, ?, ?, ?)",
             [number_of_people, date, time, "pending", user_id, note]
         );
 
@@ -86,20 +87,23 @@ class ReservationRepository {
             );
         }
 
-        return rows;
+        return rows[0];
     }
 
     //Method to update a reservation by ID
-    async updateReservation(id, updates) {
+    async updateReservation(id, updates, user_id) {
         const [reservation] = await this.pool.query("SELECT * FROM reservations WHERE id = ?", [id]);
         if (reservation.length === 0) {
             throw new Error("Reservation not found");
+        }
+        if (reservation[0].user_id !== user_id) {
+            throw new Error("Access denied");
         }
         if (reservation[0].status !== "pending") {
             throw new Error("Reservation is not pending");
         }
 
-        const allowedFields = ["number_of_people", "date", "time", "note", "status"];
+        const allowedFields = ["number_of_people", "date", "time", "comment", "status"];
         const fields = Object.keys(updates).filter(field => allowedFields.includes(field));
 
         if (fields.length === 0) {
@@ -119,7 +123,11 @@ class ReservationRepository {
 
 
     // Method to delete a reservation by ID
-    async deleteReservation(id) {
+    async deleteReservation(id, user_id) {
+        const [reservation] = await this.pool.query("SELECT * FROM reservations WHERE id = ?", [id]);
+        if (reservation.length === 0 || reservation[0].user_id !== user_id) {
+            throw new Error("Reservation not found or access denied");
+        }
         const rows = await this.pool.query("DELETE FROM reservation_tables WHERE reservation_id = ?", [id]);
         const rows2 = await this.pool.query("DELETE FROM reservations WHERE id = ?", [id]);
         return rows2;

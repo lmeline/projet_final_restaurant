@@ -14,7 +14,7 @@ app.use("/users", authMiddleware, adminMiddleware,  userRouter);
 
 app.use("/auth", authRouter);
 // Use of routes defined in /routes/reservations.js with /reservations prefix
-app.use("/reservations", reservationRouter);
+app.use("/reservations", authMiddleware, reservationRouter);
 
 //Base Endpoint
 app.get("/", (req, res) => {

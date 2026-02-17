@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const reservationRepository = require("../../repositories/reservationRepository");
+const adminMiddleware = require("../middlewares/admin");
+const clientMiddleware = require("../middlewares/client");
 
-router.get("/", async (req, res) => {
+
+// Method to list all reservations, only accessible by admin
+router.get("/", adminMiddleware, async (req, res) => {
     try {
         const [reservations] = await reservationRepository.listReservations();
         res.json(reservations);
@@ -12,24 +16,26 @@ router.get("/", async (req, res) => {
 });
 
 
-// TODO : Change to /my-reservation and get user_id from token
-router.get("/:user_id", async (req, res) => {
-    const user_id = req.params.user_id;
+// Method to get specific reservation for the id of the user
+router.get("/my-reservations", async (req, res) => {
+    const user_id = req.user.id || req.user.userId;
     try {
         const [reservation] = await reservationRepository.getReservation(user_id);
-        if (reservation.length === 0) {
-            res.status(404).json({ error: "Reservation not found" });
-        } else {
-            res.json(reservation);
+         if (reservation.length === 0) {
+            return res.status(404).json({ error: "No reservations found for this user" });
         } 
+        res.json(reservation);
     } catch (error) {
-            res.status(500).json({ error: error.message });
-    }}
-);
+        res.status(500).json({ error: error.message });
+    }
+});
 
-// TODO : Get user_id from token
-router.post("/", async (req, res) => {
-    const { user_id, number_of_people, date, time, note } = req.body;
+// Methode for creating a reservation, only accessible by clients
+router.post("/", clientMiddleware, async (req, res) => {
+    const { number_of_people, date, time, note } = req.body;
+
+    const user_id = req.user.id || req.user.userId;
+
     try {
         const reservation = await reservationRepository.createReservation(user_id, number_of_people, date, time, note);
         res.status(201).json({ message: "Reservation created successfully", reservation });
@@ -38,13 +44,15 @@ router.post("/", async (req, res) => {
     }
 });
 
-// Methods for updating a reservation
+// Method for updating a reservation
 router.put("/:id", async (req, res) => {
     const { id } = req.params; 
     const updates = req.body;  
 
+    const user_id = req.user.id || req.user.userId;
+
     try {
-        const result = await reservationRepository.updateReservation(id, updates);
+        const result = await reservationRepository.updateReservation(id, updates, user_id);
         res.json({
             message: "Reservation updated successfully",
             affectedRows: result.affectedRows
@@ -54,6 +62,8 @@ router.put("/:id", async (req, res) => {
             res.status(404).json({ error: error.message });
         } else if (error.message === "Only pending reservations can be modified") {
             res.status(400).json({ error: error.message });
+        }  else if (error.message === "Access denied") {
+            res.status(403).json({ error: "You can only update your own reservations" });
         } else {
             res.status(500).json({ error: error.message });
         }
@@ -63,10 +73,11 @@ router.put("/:id", async (req, res) => {
 // Method for deleting a reservation
 router.delete("/:id", async (req, res) => {
     const id = req.params.id;
+    const user_id = req.user.id || req.user.userId;
     try {
-        const result = await reservationRepository.deleteReservation(id);
+        const result = await reservationRepository.deleteReservation(id, user_id);
         if (result.affectedRows === 0) {
-            res.status(404).json({ error: "Reservation not found" });
+            res.status(404).json({ error: "Reservation not found or access denied" });
         } else {
             res.json({ message: "Reservation deleted successfully" });
         }
@@ -76,13 +87,17 @@ router.delete("/:id", async (req, res) => {
 });
 
 // Method for validating a reservation
-router.patch ("/:id/validate", async (req, res) => {
+router.patch ("/:id/validate", adminMiddleware, async (req, res) => {
     const id = req.params.id;
     try {
         const reservation = await reservationRepository.validateReservation(id);
         res.json({ message: "Reservation validated successfully", reservation });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        if (error.message === "Reservation not found") {
+            res.status(404).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: error.message });
+        }
     }
 });
 

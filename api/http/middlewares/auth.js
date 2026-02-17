@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { verifyToken } = require("../utils/JwtTokenManager");
+const { verifyToken } = require("../../utils/jwtTokenManager");
 const SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 function authMiddleware(req, res, next) {
@@ -11,7 +11,7 @@ function authMiddleware(req, res, next) {
 
     try {
         const payload = verifyToken(token);
-        req.user = { id: payload.userId, role: payload.role };
+        req.user = { id: (payload.id || payload.userId), role: payload.role };
         next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid token" });
