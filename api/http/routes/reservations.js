@@ -60,6 +60,7 @@ router.put("/:id", async (req, res) => {
     }
 });
 
+// Method for deleting a reservation
 router.delete("/:id", async (req, res) => {
     const id = req.params.id;
     try {
@@ -74,6 +75,7 @@ router.delete("/:id", async (req, res) => {
     }
 });
 
+// Method for validating a reservation
 router.patch ("/:id/validate", async (req, res) => {
     const id = req.params.id;
     try {
