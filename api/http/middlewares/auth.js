@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { verifyToken } = require("../utils/JwtTokenManager");
+const { verifyToken } = require("../../utils/jwtTokenManager");
 const SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 function authMiddleware(req, res, next) {
