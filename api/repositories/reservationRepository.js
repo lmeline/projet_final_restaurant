@@ -16,7 +16,7 @@ class ReservationRepository {
     }
 
 
-    // TODO : If possible, get user_id from token instead of getting it from the request body
+    // TODO : If possible, get user_id from token instead of getting it from the request body  
     async createReservation(user_id, number_of_people, date, time, note) {
 
         // Check if user_id is not null and if the id exists in the database
