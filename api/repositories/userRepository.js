@@ -8,12 +8,24 @@ class UserRepository {
         return rows;
     }
 
-    async getUser(id) {
-        throw new Error("Method not implemented.");
+    async getUserByEmail(email) {
+        const [row] = await this.pool.query(`
+            SELECT *
+            FROM users 
+            WHERE email = ?`, 
+            [email]
+        );
+        return row;
     }
 
-    async createUser() {
-        throw new Error("Method not implemented.");
+    async createUser(firstname, lastname, email, phone, password_hash) {
+        const [id] = await this.pool.query(`
+            INSERT INTO users (firstname, lastname, email, phone, password_hash) VALUES 
+            (?, ?, ?, ?, ?)`, 
+            [firstname, lastname, email, phone, password_hash]
+        );
+
+        return id;
     }
 
     async updateUser(id) {
