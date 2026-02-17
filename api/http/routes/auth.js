@@ -21,12 +21,14 @@ router.post("/signup", async (req, res) => {
             return;
         }
 
+        const passwordHash = await PasswordHasher.hashPassword(password);
+
         let result = await userRepository.createUser(
             firstname, 
             lastname, 
             email, 
             phone || "NULL", 
-            PasswordHasher.hashPassword(password)
+            passwordHash
         );
 
         res.status(201).json({
