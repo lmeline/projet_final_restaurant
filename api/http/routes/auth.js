@@ -3,7 +3,7 @@ const router = express.Router();
 const userRepository = require("../../repositories/userRepository");
 const PasswordHasher = require("../../utils/passwordHasher");
 const {validateCreateUserRequest, validateLoginRequest} = require("../../http/validators/userValidator");
-const generateJwtToken = require("../../utils/JwtTokenGenerator");
+const { generateToken } = require("../../utils/jwtTokenManager");
 
 router.post("/signup", async (req, res) => {
     let validationResult = validateCreateUserRequest(req.body);
@@ -62,7 +62,7 @@ router.post("/login", async (req, res) => {
         } 
 
         res.status(200).json({
-            token: generateJwtToken(user.id, user.role)
+            token: generateToken(user.id, user.role)
         });
 
     } catch (error) {
