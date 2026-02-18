@@ -26,6 +26,7 @@ CREATE TABLE reservations (
     `date` DATE NOT NULL,
     `time` TIME NOT NULL,
     `status` ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'pending',
+    comment TEXT,
     user_id BIGINT UNSIGNED NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
