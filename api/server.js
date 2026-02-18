@@ -1,7 +1,11 @@
 require('dotenv').config();
 const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+const swaggerOptions = require("./doc/swaggerOptions");
+
 const app = express();
 app.use(express.json());
+
 const port = 3000;
 const userRouter = require("./http/routes/users");
 const menuRouter = require("./http/routes/menu");
@@ -10,6 +14,11 @@ const authMiddleware = require("./http/middlewares/auth");
 const adminMiddleware = require("./http/middlewares/admin");
 const reservationRouter = require("./http/routes/reservations");
 
+// Check the presence of the JWT_SECRET_KEY
+if (!process.env.JWT_SECRET_KEY) {
+  console.error("Missing JWT_SECRET_KEY environment variable");
+  process.exit(1);
+}
 
 app.use("/auth", authRouter);
 
@@ -29,6 +38,10 @@ app.get("/", (req, res) => {
     greetings: "Welcome to API Restaurant :)",
   });
 });
+
+// Generation de la doc
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
+
 
 // Server launch
 app.listen(port, () => {
