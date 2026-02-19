@@ -20,7 +20,7 @@ router.get("/", adminMiddleware, async (req, res) => {
         return;
     }
     try {
-        const [reservations] = await reservationRepository.listReservations();
+        const [reservations] = await reservationRepository.listReservations(parsedParams);
         res.json(reservations);
     } catch (error) {
         res.status(500).json({ error: error.message });
