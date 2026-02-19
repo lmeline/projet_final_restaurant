@@ -1,4 +1,4 @@
-USE restaurant_db;
+USE db_name_placeholder;
 
 -- 1. Insertion des Utilisateurs (Un admin et quelques clients)
 INSERT INTO `users` (firstname, lastname, phone, email, password_hash, role) VALUES
