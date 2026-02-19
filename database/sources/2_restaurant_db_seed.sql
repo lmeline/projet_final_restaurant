@@ -15,8 +15,8 @@ INSERT INTO `tables` (seats) VALUES
 
 -- 3. Insertion des Articles du Menu
 INSERT INTO `menu_items` (`name`, description, price, category) VALUES
-('Soupe à l''oignon', 'Classique français avec croûtons et fromage fondu', 850, 'entrée'),
-('Salade César', 'Poulet grillé, parmesan, sauce maison', 1200, 'entrée'),
+('Soupe à l''oignon', 'Classique français avec croûtons et fromage fondu', 850, 'entree'),
+('Salade César', 'Poulet grillé, parmesan, sauce maison', 1200, 'entree'),
 ('Entrecôte frites', 'Viande bovine 300g, frites maison, sauce au poivre', 2400, 'plat'),
 ('Risotto aux champignons', 'Riz arborio, mélange de champignons de saison', 1800, 'plat'),
 ('Mousse au chocolat', 'Chocolat noir 70%, onctueuse et légère', 700, 'dessert'),

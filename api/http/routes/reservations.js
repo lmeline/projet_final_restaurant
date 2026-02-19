@@ -7,11 +7,20 @@ const {
     validateCreateReservationRequest, 
     validateUpdateReservationRequest 
 } = require("../validators/reservationValidator");
-
+const queryValidator = require("../validators/utils/queryValidator");
 // Method to list all reservations, only accessible by admin
 router.get("/", adminMiddleware, async (req, res) => {
+    let parsedParams = queryValidator(req.query, {
+        status: ["pending", "confirmed", "cancelled"],
+        date: "date"
+    })
+
+    if (parsedParams.error) {
+        res.status(400).json(parsedParams);
+        return;
+    }
     try {
-        const [reservations] = await reservationRepository.listReservations();
+        const [reservations] = await reservationRepository.listReservations(parsedParams);
         res.json(reservations);
     } catch (error) {
         res.status(500).json({ error: error.message });

@@ -2,8 +2,25 @@ const db = require("./config/db");
 
 class MenuRepository {
     pool = db;
-    async listMenu() {
-        const rows = await this.pool.query("SELECT * FROM menu_items");
+    async listMenu(parsedParams) {
+        let sqlQuery = "SELECT * FROM menu_items";
+        let filters = [];
+        let filtersValues = [];
+
+        if (parsedParams.category) {
+            filters.push(`category = ?`);
+            filtersValues.push(parsedParams.category);
+        }
+        if (parsedParams["max-price"]) {
+            filters.push(`price <= ?`);
+            filtersValues.push(parsedParams["max-price"]);
+        }
+
+        if (filters.length > 0) {
+            sqlQuery += " WHERE " + filters.join(" AND ") + ";";
+        }
+
+        const rows = await this.pool.query(sqlQuery, filtersValues);
         return rows;
     }
 }

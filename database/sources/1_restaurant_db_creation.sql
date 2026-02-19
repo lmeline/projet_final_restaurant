@@ -44,7 +44,7 @@ CREATE TABLE menu_items (
     `name` VARCHAR(150) NOT NULL,
     description TEXT,
     price INT NOT NULL,
-    category ENUM('entrée', 'plat', 'dessert') NOT NULL
+    category ENUM('entree', 'plat', 'dessert') NOT NULL
 );
 
 CREATE TABLE opening_slots (
