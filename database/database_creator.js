@@ -25,9 +25,9 @@ const sql_files = fs.readdirSync(path.join(__dirname, "sources"))
         try {
             await tempConnection.query(sqlRequest);
             console.log("file " + file + " injected !");
-        } catch (_) {
+        } catch (err) {
             console.log("an error occured while injecting file " + file);
-            console.log("SQL_ERROR");
+            console.error("SQL_ERROR : ", err);
         }
         
     }
