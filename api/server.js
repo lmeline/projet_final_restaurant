@@ -13,6 +13,7 @@ const authRouter = require("./http/routes/auth");
 const authMiddleware = require("./http/middlewares/auth");
 const adminMiddleware = require("./http/middlewares/admin");
 const reservationRouter = require("./http/routes/reservations");
+const tableRouter = require("./http/routes/tables");
 
 // Check the presence of the JWT_SECRET_KEY
 if (!process.env.JWT_SECRET_KEY) {
@@ -31,6 +32,9 @@ app.use("/reservations", authMiddleware, reservationRouter);
 
 // Use of routes defined in /routes/menu.js with /menu prefix
 app.use("/menu", menuRouter);
+
+// Use of routes defined in /routes/tables.js with /tables prefix
+app.use("/tables", authMiddleware, adminMiddleware, tableRouter);
 
 //Base Endpoint
 app.get("/", (req, res) => {
