@@ -1,3 +1,5 @@
+    const parseFields = require("./utils/requestParser");
+    
     function validateCreateUserRequest(body) {
 
         let parsed = parseFields(body, ["firstname", "lastname", "email", "phone", "password"]);
@@ -120,18 +122,6 @@
         return true;
     }
 
-    function parseFields(body, allowedFields) {
 
-        
-        const actualFields = Object.keys(body);
-
-        for (const key of actualFields) {
-            if (!allowedFields.includes(key)) {
-                return { error: `Illegal field detected: \`${key}\`. Only ${allowedFields.join(", ")} are allowed.` };
-            }
-        }
-
-        return body;
-    }
 
 module.exports = { validateLoginRequest, validateCreateUserRequest};

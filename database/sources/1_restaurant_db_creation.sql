@@ -1,8 +1,8 @@
-DROP DATABASE IF EXISTS restaurant_db;
+DROP DATABASE IF EXISTS db_name_placeholder;
 
-CREATE DATABASE restaurant_db;
+CREATE DATABASE db_name_placeholder;
 
-USE restaurant_db;
+USE db_name_placeholder;
 
 
 CREATE TABLE `users` (
