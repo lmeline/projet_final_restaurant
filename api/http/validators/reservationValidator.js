@@ -1,3 +1,5 @@
+const parseFields = require("./utils/requestParser");
+
 // Function to check the validity of the request
 function validateCreateReservationRequest(body) {
     let parsed = parseFields(body, ["number_of_people", "date", "time", "note"]);
@@ -65,15 +67,6 @@ function isFuture(date, time) {
     return reservationDate > new Date();
 }
 
-function parseFields(body, allowedFields) {
-    const actualFields = Object.keys(body);
-    for (const key of actualFields) {
-        if (!allowedFields.includes(key)) {
-            return { error: `Illegal field detected: \`${key}\`. Only ${allowedFields.join(", ")} are allowed.` };
-        }
-    }
-    return body;
-}
 
 module.exports = { 
     validateCreateReservationRequest, 
