@@ -5,7 +5,48 @@ const PasswordHasher = require("../../utils/passwordHasher");
 const {validateCreateUserRequest, validateLoginRequest} = require("../../http/validators/userValidator");
 const { generateToken } = require("../../utils/jwtTokenManager");
 
-// Route for user signup
+/**
+ * @swagger
+ * /auth/signup:
+ *  post:
+ *   summary: Inscrire un nouvel utilisateur
+ *   tags: 
+ *    - Auth
+ *   requestBody:
+ *    required: true
+ *    content:
+ *     application/json:
+ *      schema:
+ *       type: object
+ *       required:
+ *        - firstname
+ *        - lastname
+ *        - email
+ *        - password
+ *       properties:
+ *        firstname:
+ *         type: string
+ *         example: "Jean"
+ *        lastname:
+ *         type: string
+ *         example: "Dupont"
+ *        email:
+ *         type: string
+ *         example: "jean@exampl.com"
+ *        phone:
+ *         type: string
+ *         example: "0600000000"
+ *        password:
+ *         type: string
+ *         example: "password123"
+ *   responses:
+ *    201:
+ *     description: Utilisateur créé
+ *    400:
+ *     description: Données invalides
+ *    409:
+ *     description: Utilisateur déjà existant
+ */
 router.post("/signup", async (req, res) => {
     let validationResult = validateCreateUserRequest(req.body);
 
@@ -44,7 +85,50 @@ router.post("/signup", async (req, res) => {
     }
 })
 
-// Route for user login
+/**
+ * @swagger
+ * /auth/login:
+ *  post:
+ *   summary: Se connecter pour obtenir un token
+ *   tags: [Auth]
+ *   requestBody:
+ *    required: true
+ *    content:
+ *     application/json:
+ *      schema:
+ *       type: object
+ *       required:
+ *        - email
+ *        - password
+ *       properties:
+ *        email:
+ *         type: string
+ *         example: "jean.dupont@example.com"
+ *        password:
+ *         type: string
+ *         example: "MonMotDePasseSecret123"
+ *   responses:
+ *    200:
+ *     description: Connexion réussie, renvoie un token JWT
+ *     content:
+ *      application/json:
+ *       schema:
+ *        type: object
+ *        required:
+ *         - token
+ *        properties:
+ *         token:
+ *          type: string
+ *          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *    400:
+ *     description: Format d'email ou mot de passe invalide
+ *    401:
+ *     description: Identifiants incorrects (mot de passe erroné)
+ *    404:
+ *     description: Utilisateur non trouvé
+ *    500:
+ *     description: Erreur serveur
+ */
 router.post("/login", async (req, res) => {
     let validationResult = validateLoginRequest(req.body);
 

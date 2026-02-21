@@ -50,7 +50,6 @@ app.get("/", (req, res) => {
 // Generation de la doc
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 
-
 // Server launch
 app.listen(port, () => {
   console.log(`Express server launched, listening on ${process.env.DB_HOST}:${port}`);
