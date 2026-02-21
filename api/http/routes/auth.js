@@ -5,6 +5,7 @@ const PasswordHasher = require("../../utils/passwordHasher");
 const {validateCreateUserRequest, validateLoginRequest} = require("../../http/validators/userValidator");
 const { generateToken } = require("../../utils/jwtTokenManager");
 
+// Route for user signup
 router.post("/signup", async (req, res) => {
     let validationResult = validateCreateUserRequest(req.body);
 
@@ -43,6 +44,7 @@ router.post("/signup", async (req, res) => {
     }
 })
 
+// Route for user login
 router.post("/login", async (req, res) => {
     let validationResult = validateLoginRequest(req.body);
 

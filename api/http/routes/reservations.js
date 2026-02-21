@@ -3,12 +3,10 @@ const router = express.Router();
 const reservationRepository = require("../../repositories/reservationRepository");
 const adminMiddleware = require("../middlewares/admin");
 const clientMiddleware = require("../middlewares/client");
-const { 
-    validateCreateReservationRequest, 
-    validateUpdateReservationRequest 
-} = require("../validators/reservationValidator");
+const {validateCreateReservationRequest, validateUpdateReservationRequest } = require("../validators/reservationValidator");
 const queryValidator = require("../validators/utils/queryValidator");
-// Method to list all reservations, only accessible by admin
+
+// Route to list all reservations, only accessible by admin
 router.get("/", adminMiddleware, async (req, res) => {
     let parsedParams = queryValidator(req.query, {
         status: ["pending", "confirmed", "cancelled"],
@@ -28,7 +26,7 @@ router.get("/", adminMiddleware, async (req, res) => {
 });
 
 
-// Method to get specific reservation for the id of the user
+// Route to get specific reservation for the id of the user
 router.get("/my-reservations", async (req, res) => {
     const user_id = req.user.id || req.user.userId;
     try {
@@ -42,7 +40,7 @@ router.get("/my-reservations", async (req, res) => {
     }
 });
 
-// Methode for creating a reservation, only accessible by clients
+// Route for creating a reservation, only accessible by clients
 router.post("/", clientMiddleware, async (req, res) => {
     const validationResult = validateCreateReservationRequest(req.body);
 
@@ -61,7 +59,7 @@ router.post("/", clientMiddleware, async (req, res) => {
     }
 });
 
-// Method for updating a reservation
+// Route for updating a reservation
 router.put("/:id", async (req, res) => {
     const { id } = req.params; 
     const validationResult = validateUpdateReservationRequest(req.body);
@@ -91,7 +89,7 @@ router.put("/:id", async (req, res) => {
     }
 });
 
-// Method for deleting a reservation
+// Route for deleting a reservation
 router.delete("/:id", async (req, res) => {
     const id = req.params.id;
 
@@ -112,7 +110,7 @@ router.delete("/:id", async (req, res) => {
     }
 });
 
-// Method for validating a reservation
+// Route for validating a reservation
 router.patch ("/:id/validate", adminMiddleware, async (req, res) => {
     const id = req.params.id;
     try {

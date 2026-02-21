@@ -2,6 +2,8 @@ const db = require("./config/db");
 
 class MenuRepository {
     pool = db;
+
+    // Method to list all menu items with optional filters
     async listMenu(parsedParams) {
         let sqlQuery = "SELECT * FROM menu_items";
         let filters = [];

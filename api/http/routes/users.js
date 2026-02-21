@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const userRepository = require("../../repositories/userRepository");
 
+// Route to list all users
 router.get("/", async (req, res) => {
     try {
         const [users] = await userRepository.listUser();

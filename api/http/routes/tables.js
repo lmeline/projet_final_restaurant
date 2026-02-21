@@ -3,6 +3,7 @@ const router = express.Router();
 const tableRepository = require("../../repositories/tableRepository");
 const tableValidator = require("../validators/tableValidator");
 
+// Route to list all tables
 router.get("/", async (req, res) => {
     try {
         const [tables] = await tableRepository.listTables();
@@ -13,6 +14,7 @@ router.get("/", async (req, res) => {
     }
 });
 
+// Route to create a new table
 router.post("/", async(req, res) => {
     const parsedBody = tableValidator(req.body);
 
@@ -35,6 +37,7 @@ router.post("/", async(req, res) => {
     }
 })
 
+// Route to get a specific table by id
 router.get("/:id", async(req, res) => {
     const id = req.params.id;
 

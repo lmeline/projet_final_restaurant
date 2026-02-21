@@ -1,3 +1,4 @@
+// Middleware to check if the user is an admin
 function adminMiddleware(req, res, next) {
 
     if (req.user.role !== "admin") {

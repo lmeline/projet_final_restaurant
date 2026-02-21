@@ -1,9 +1,4 @@
-/**
- * Calculate the required table sizes based on the number of people.
- * Based on a greedy algorithm that tries to fit the largest possible table first, then smaller ones.
- * @param {number} peopleCount - The number of people in the reservation
- * @returns {Array} - List of required table sizes
- */
+// Utility function to calculate the required table sizes based on the number of people
 function getRequiredTableSizes(peopleCount) {
     if (!peopleCount || peopleCount <= 0) return [];
 

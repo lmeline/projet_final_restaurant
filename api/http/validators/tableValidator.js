@@ -2,6 +2,7 @@ const db = require("../../repositories/config/db");
 
 const parseFields = require("./utils/requestParser");
 
+// Function to check the validity of the request body for creating a table
 function validateCreateTableRequest(body) {
 
     let parsed = parseFields(body, ["capacity"]);
@@ -17,14 +18,8 @@ function validateCreateTableRequest(body) {
     return parsed;
 
 }
-
-/**
- * Check if the required tables are available for a given date and time.
- * @param {Object} requiredMap - A map of required table sizes and their counts
- * @param {string} date - Format "YYYY-MM-DD"
- * @param {string} time - Format "HH:MM"
- * @returns {Object} - { available: boolean, tableIds: Array, error: string }
- */
+ 
+// Function to check if the required tables are available for a given date and time
 async function checkTablesAvailability(requiredMap, date, time) {
     try {
         let selectedTableIds = [];

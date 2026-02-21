@@ -3,6 +3,7 @@ const router = express.Router();
 const menuRepository = require("../../repositories/menuRepository");
 const queryValidator = require("../validators/utils/queryValidator");
 
+// Route to get the menu, with optional filters for category and max price
 router.get("/", async (req, res) => {
   let parsedParams = queryValidator(req.query, {
     category: ["entree", "plat", "dessert"],

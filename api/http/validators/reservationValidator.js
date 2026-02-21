@@ -1,6 +1,6 @@
 const parseFields = require("./utils/requestParser");
 
-// Function to check the validity of the request
+// Function to check the validity of the request body for creating a reservation
 function validateCreateReservationRequest(body) {
     let parsed = parseFields(body, ["number_of_people", "date", "time", "note"]);
 
@@ -27,7 +27,7 @@ function validateCreateReservationRequest(body) {
     return body;
 }
 
-
+// Function to check the validity of the request body for updating a reservation
 function validateUpdateReservationRequest(body) {
     const allowedFields = ["number_of_people", "date", "time", "note"];
     let parsed = parseFields(body, allowedFields);
@@ -68,7 +68,4 @@ function isFuture(date, time) {
 }
 
 
-module.exports = { 
-    validateCreateReservationRequest, 
-    validateUpdateReservationRequest 
-};
+module.exports = {validateCreateReservationRequest, validateUpdateReservationRequest};
