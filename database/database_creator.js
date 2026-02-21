@@ -3,6 +3,23 @@ const fs = require('fs');
 const mysql = require('mysql2/promise');
 const path = require('path');
 
+if (!process.env.DB_HOST) {
+    console.error("Missing DB_HOST environment variable");
+    process.exit(1);
+}
+if (!process.env.DB_USERNAME) {
+    console.error("Missing DB_USERNAME environment variable");
+    process.exit(1);
+}
+if (!process.env.DB_PORT) {
+    console.error("Missing DB_PORT environment variable");
+    process.exit(1);
+}
+if (!process.env.DB_NAME) {
+    console.error("Missing DB_NAME environment variable");
+    process.exit(1);
+}
+
 
 
 const sql_files = fs.readdirSync(path.join(__dirname, "sources"))
@@ -19,18 +36,31 @@ const sql_files = fs.readdirSync(path.join(__dirname, "sources"))
     });
 
     for (const file of sql_files) {
-        const sqlRequest = fs.readFileSync(path.join(__dirname, "sources", file))
+        let sqlRequest = fs.readFileSync(path.join(__dirname, "sources", file))
             .toString();
+        
+        sqlRequest = sqlRequest.replaceAll("db_name_placeholder", process.env.DB_NAME);
 
         try {
             await tempConnection.query(sqlRequest);
             console.log("file " + file + " injected !");
-        } catch (_) {
+        } catch (err) {
             console.log("an error occured while injecting file " + file);
-            console.log("SQL_ERROR");
+            console.error("SQL_ERROR : ", err);
         }
         
     }
+
+    if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+        const PasswordHasher = require("../api/utils/passwordHasher");
+
+        const hashedPassword = await PasswordHasher.hashPassword(process.env.ADMIN_PASSWORD);
+
+        await tempConnection.query("INSERT INTO users (email, password_hash, firstname, lastname, role) VALUES (?, ?, 'Admin', 'Resto', 'admin')", [process.env.ADMIN_EMAIL, hashedPassword]);
+
+        console.log(`Admin ${process.env.ADMIN_EMAIL} created !`);
+    }
+    
     await tempConnection.end();
 })();
 

@@ -1,5 +1,23 @@
 const db = require("../../repositories/config/db");
 
+const parseFields = require("./utils/requestParser");
+
+function validateCreateTableRequest(body) {
+
+    let parsed = parseFields(body, ["capacity"]);
+
+    if (parsed.error) {
+        return parsed;
+    }
+
+    if (Number.isNaN(Number(body.capacity)) || body.capacity <= 0) {
+        return { error: "Field `capacity` must be a integer greater than 0" };
+    }
+
+    return parsed;
+
+}
+
 /**
  * Check if the required tables are available for a given date and time.
  * @param {Object} requiredMap - A map of required table sizes and their counts
@@ -53,4 +71,4 @@ async function checkTablesAvailability(requiredMap, date, time) {
     }
 }
 
-module.exports = { checkTablesAvailability };
+module.exports = { checkTablesAvailability, validateCreateTableRequest };

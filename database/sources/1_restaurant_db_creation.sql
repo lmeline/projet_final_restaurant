@@ -1,8 +1,8 @@
-DROP DATABASE IF EXISTS restaurant_db;
+DROP DATABASE IF EXISTS db_name_placeholder;
 
-CREATE DATABASE restaurant_db;
+CREATE DATABASE db_name_placeholder;
 
-USE restaurant_db;
+USE db_name_placeholder;
 
 
 CREATE TABLE `users` (
@@ -44,7 +44,7 @@ CREATE TABLE menu_items (
     `name` VARCHAR(150) NOT NULL,
     description TEXT,
     price INT NOT NULL,
-    category ENUM('entrée', 'plat', 'dessert') NOT NULL
+    category ENUM('entree', 'plat', 'dessert') NOT NULL
 );
 
 CREATE TABLE opening_slots (
