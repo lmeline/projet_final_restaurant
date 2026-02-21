@@ -54,22 +54,4 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 // Server launch
 app.listen(port, () => {
   console.log(`Express server launched, listening on ${process.env.DB_HOST}:${port}`);
-
-  //Test de la fonction d'assignation de tables
-  const peopleCount = 17;
-  const requiredSizes = getRequiredTableSizes(peopleCount);
-  console.log(`For ${peopleCount} people, required table sizes are:`, requiredSizes);
-
-  //Test de la fonction de vérification de disponibilité des tables
-  const date = "2024-12-25";
-  const time = "19:00";
-  checkTablesAvailability(requiredSizes, date, time).then(result => {
-    if (result.available) {
-      console.log(`Tables are available for ${peopleCount} people on ${date} at ${time}. Table IDs:`, result.tableIds);
-    } else {
-      console.log(`Tables are NOT available for ${peopleCount} people on ${date} at ${time}. Reason:`, result.error);
-    }
-  }).catch(error => {
-    console.error("Error checking table availability:", error);
-  });
 });
