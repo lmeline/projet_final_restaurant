@@ -53,6 +53,29 @@ function validateUpdateReservationRequest(body) {
     return body;
 }
 
+function validateListReservationsRequest(query) {
+    const validStatuses = ['pending', 'confirmed', 'cancelled'];
+    const filters = {};
+
+    // Validation du statut
+    if (query.status) {
+        if (!validStatuses.includes(query.status)) {
+            return { error: "Invalid status. Must be pending, confirmed, or cancelled." };
+        }
+        filters.status = query.status;
+    }
+
+    // Validation de la date
+    if (query.date) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(query.date)) {
+            return { error: "Invalid date format. Use YYYY-MM-DD." };
+        }
+        filters.date = query.date;
+    }
+
+    return filters; // Retourne uniquement les filtres validés
+}
+
 // Utility functions
 function validateDate(date) {
     return /^\d{4}-\d{2}-\d{2}$/.test(date);
@@ -68,4 +91,4 @@ function isFuture(date, time) {
 }
 
 
-module.exports = {validateCreateReservationRequest, validateUpdateReservationRequest};
+module.exports = {validateCreateReservationRequest, validateUpdateReservationRequest, validateListReservationsRequest};

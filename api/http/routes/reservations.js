@@ -3,7 +3,7 @@ const router = express.Router();
 const reservationRepository = require("../../repositories/reservationRepository");
 const adminMiddleware = require("../middlewares/admin");
 const clientMiddleware = require("../middlewares/client");
-const {validateCreateReservationRequest, validateUpdateReservationRequest } = require("../validators/reservationValidator");
+const {validateCreateReservationRequest, validateUpdateReservationRequest} = require("../validators/reservationValidator");
 const queryValidator = require("../validators/utils/queryValidator");
 
 /**
@@ -52,8 +52,7 @@ router.get("/", adminMiddleware, async (req, res) => {
     })
 
     if (parsedParams.error) {
-        res.status(400).json(parsedParams);
-        return;
+        return res.status(400).json(parsedParams) ;
     }
     try {
         const [reservations] = await reservationRepository.listReservations(parsedParams);
@@ -162,7 +161,7 @@ router.post("/", clientMiddleware, async (req, res) => {
 
     try {
         const reservation = await reservationRepository.createReservation(user_id, number_of_people, date, time, note);
-        res.status(201).json({ message: "Reservation created successfully", reservation });
+        res.status(201).json({ message: "Reservation created successfully", reservationId: reservation.id, tablesAssigned: reservation.tablesAssigned });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

@@ -1,46 +1,50 @@
-USE db_name_placeholder;
+SET FOREIGN_KEY_CHECKS = 0; -- On coupe la surveillance pour nettoyer
+TRUNCATE TABLE reservation_tables;
+TRUNCATE TABLE reservations;
+TRUNCATE TABLE tables;
+TRUNCATE TABLE users;
+TRUNCATE TABLE menu_items;
+TRUNCATE TABLE opening_slots;
+SET FOREIGN_KEY_CHECKS = 1; -- On remet la surveillance
 
--- 1. Insertion des Utilisateurs (Un admin et quelques clients)
-INSERT INTO `users` (firstname, lastname, phone, email, password_hash, role) VALUES
-('Jean', 'Dupont', '0601020304', 'jean.dupont@email.com', 'hash_password_123', 'client'),
-('Marie', 'Curie', '0611223344', 'marie.curie@email.com', 'hash_password_456', 'client'),
-('Admin', 'Resto', '0102030405', 'admin@restaurant.com', 'admin_secure_hash_789', 'admin');
+USE restaurant_db;
 
--- 2. Insertion des Tables (Capacités variées)
-INSERT INTO `tables` (seats) VALUES
-(2), (2), -- Deux tables de 2
-(4), (4), -- Deux tables de 4
-(6),       -- Une table de 6
-(8);       -- Une grande table de 8
+-- 1. Utilisateurs (IDs 1, 2, 3)
+INSERT INTO `users` (id, firstname, lastname, phone, email, password_hash, role) VALUES
+(1, 'Jean', 'Dupont', '0601020304', 'jean.dupont@email.com', 'hash_password_123', 'client'),
+(2, 'Marie', 'Curie', '0611223344', 'marie.curie@email.com', 'hash_password_456', 'client'),
+(3, 'Admin', 'Restaurant', '0102030405', 'admin@restaurant.com', 'admin_secure_hash_789', 'admin');
 
--- 3. Insertion des Articles du Menu
-INSERT INTO `menu_items` (`name`, description, price, category) VALUES
-('Soupe à l''oignon', 'Classique français avec croûtons et fromage fondu', 850, 'entree'),
-('Salade César', 'Poulet grillé, parmesan, sauce maison', 1200, 'entree'),
-('Entrecôte frites', 'Viande bovine 300g, frites maison, sauce au poivre', 2400, 'plat'),
-('Risotto aux champignons', 'Riz arborio, mélange de champignons de saison', 1800, 'plat'),
-('Mousse au chocolat', 'Chocolat noir 70%, onctueuse et légère', 700, 'dessert'),
-('Tarte Tatin', 'Pommes caramélisées, servie avec crème fraîche', 800, 'dessert');
+-- 2. Tables (IDs 1 à 6)
+INSERT INTO `tables` (id, seats) VALUES
+(1, 2), (2, 2), (3, 4), (4, 4), (5, 6), (6, 8);
 
--- 4. Insertion des Créneaux d'Ouverture (Opening Slots)
--- On simule des créneaux de 2h (120 min)
+-- 3. Menu
+INSERT INTO `menu_items` (name, description, price, category) VALUES
+('Salade César', 'Poulet grillé, parmesan', 1200, 'entree'),
+('Entrecôte frites', 'Viande bovine 300g', 2400, 'plat'),
+('Tarte Tatin', 'Pommes caramélisées', 800, 'dessert');
+
+-- 4. Créneaux
 INSERT INTO `opening_slots` (date_time, duration, available, comment) VALUES
-('2026-02-15 12:00:00', 120, 1, 'Service du midi'),
-('2026-02-15 19:30:00', 120, 1, 'Service du soir'),
-('2026-02-16 12:00:00', 120, 1, 'Service du midi - Spécial Saint Valentin (retardé)');
+('2026-02-25 12:00:00', 180, 1, 'Midi'),
+('2026-02-25 19:00:00', 240, 1, 'Soir');
 
--- 5. Insertion des Réservations
--- On lie les réservations aux IDs des users insérés plus haut (1 et 2)
-INSERT INTO reservations (number_of_people, `date`, `time`, `status`, user_id) VALUES
-(2, '2026-02-15', '12:30:00', 'confirmed', 1),
-(4, '2026-02-15', '20:00:00', 'pending', 2),
-(2, '2026-02-16', '13:00:00', 'confirmed', 1);
+-- 5. TOUTES les Réservations (IDs 1 à 9)
+-- On en insère 9 d'un coup pour être sûr des IDs
+INSERT INTO reservations (id, number_of_people, `date`, `time`, `status`, user_id, comment) VALUES
+(1, 2, '2026-02-25', '12:00:00', 'confirmed', 1, 'Anniversaire'),
+(2, 2, '2026-02-25', '12:15:00', 'confirmed', 2, 'Près de la fenêtre'),
+(3, 4, '2026-02-25', '13:00:00', 'pending', 1, 'Besoin chaise haute'),
+(4, 2, '2026-02-15', '12:30:00', 'confirmed', 1, 'Ancien test'),
+(5, 4, '2026-02-15', '20:00:00', 'pending', 2, 'Ancien test'),
+(6, 2, '2026-02-16', '13:00:00', 'confirmed', 1, 'Ancien test'),
+(7, 6, '2026-02-25', '19:30:00', 'confirmed', 2, 'Table calme'),
+(8, 4, '2026-02-25', '20:00:00', 'confirmed', 1, 'Client régulier'),
+(9, 2, '2026-02-25', '21:00:00', 'pending', 2, 'Arrivée tardive');
 
--- 6. Liaison Réservations <-> Tables (Table Pivot)
--- Réservation 1 (2 pers) -> Table 1 (2 seats)
--- Réservation 2 (4 pers) -> Table 3 (4 seats)
--- Réservation 3 (2 pers) -> Table 2 (2 seats)
+-- 6. Liaison Tables (On utilise les IDs 1 à 9 de la table au-dessus)
 INSERT INTO reservation_tables (reservation_id, table_id) VALUES
-(1, 1),
-(2, 3),
-(3, 2);
+(1, 1), (2, 2), (3, 3), -- Midi
+(4, 1), (5, 3), (6, 2), -- Anciens
+(7, 5), (8, 4), (9, 1); -- Soir
