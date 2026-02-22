@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('../log/logger');
 const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 const swaggerOptions = require("./doc/swaggerOptions");
@@ -12,6 +13,7 @@ const menuRouter = require("./http/routes/menu");
 const authRouter = require("./http/routes/auth");
 const authMiddleware = require("./http/middlewares/auth");
 const adminMiddleware = require("./http/middlewares/admin");
+const loggerMiddleware = require("./http/middlewares/log");
 const reservationRouter = require("./http/routes/reservations");
 const tableRouter = require("./http/routes/tables");
 
@@ -28,10 +30,10 @@ app.use("/users", authMiddleware, adminMiddleware,  userRouter);
 
 
 // Use of routes defined in /routes/reservations.js with /reservations prefix
-app.use("/reservations", authMiddleware, reservationRouter);
+app.use("/reservations", authMiddleware, loggerMiddleware, reservationRouter);
 
 // Use of routes defined in /routes/menu.js with /menu prefix
-app.use("/menu", menuRouter);
+app.use("/menu", loggerMiddleware, menuRouter);
 
 // Use of routes defined in /routes/tables.js with /tables prefix
 app.use("/tables", authMiddleware, adminMiddleware, tableRouter);
