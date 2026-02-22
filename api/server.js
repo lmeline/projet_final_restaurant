@@ -5,15 +5,19 @@ const swaggerOptions = require("./doc/swaggerOptions");
 
 const app = express();
 app.use(express.json());
-
 const port = 3000;
+
+// Importing routes and middlewares
 const userRouter = require("./http/routes/users");
 const menuRouter = require("./http/routes/menu");
 const authRouter = require("./http/routes/auth");
-const authMiddleware = require("./http/middlewares/auth");
-const adminMiddleware = require("./http/middlewares/admin");
 const reservationRouter = require("./http/routes/reservations");
 const tableRouter = require("./http/routes/tables");
+const authMiddleware = require("./http/middlewares/auth");
+const adminMiddleware = require("./http/middlewares/admin");
+
+const { getRequiredTableSizes } = require("./utils/tableAssigner");
+const { checkTablesAvailability } = require("./http/validators/tableValidator");
 
 // Check the presence of the JWT_SECRET_KEY
 if (!process.env.JWT_SECRET_KEY) {
@@ -45,7 +49,6 @@ app.get("/", (req, res) => {
 
 // Generation de la doc
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
-
 
 // Server launch
 app.listen(port, () => {

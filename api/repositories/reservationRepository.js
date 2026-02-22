@@ -1,4 +1,6 @@
 const db = require("./config/db");
+const { getRequiredTableSizes } = require('../utils/tableAssigner');
+const { checkTablesAvailability } = require("../http/validators/tableValidator");
 
 class ReservationRepository {
   pool = db;
@@ -10,12 +12,15 @@ class ReservationRepository {
     let filtersValues = [];
 
     if (parsedParams.status) {
-      filters.push(`status = ?`);
-      filtersValues.push(parsedParams.status);
+            filters.push("status = ?");
+            filtersValues.push(parsedParams.status);
     }
     if (parsedParams.date) {
-      filters.push(`date = ?`);
-      filtersValues.push(parsedParams.date.toISOString().split("T")[0]);
+            filters.push("date = ?");
+            const dateValue = (parsedParams.date instanceof Date) 
+            ? parsedParams.date.toISOString().split('T')[0] 
+            : parsedParams.date;
+            filtersValues.push(dateValue); 
     }
 
     if (filters.length > 0) {
@@ -37,75 +42,53 @@ class ReservationRepository {
 
   // Method to create a new reservation
   async createReservation(user_id, number_of_people, date, time, note) {
-    // Check if user_id is not null and if the id exists in the database
-    const user = await this.pool.query("SELECT * FROM users WHERE id = ?", [
-      user_id,
-    ]);
-    if (!user_id || user.length === 0) {
-      throw new Error("user_id is required and must exist in the database");
-    }
+    const connection = await this.pool.getConnection();
+    
+    try {
+        await connection.beginTransaction();
 
-    //Check if the user already has a reservation for the same date and time
-    const [existingReservation] = await this.pool.query(
-      "SELECT * FROM reservations WHERE user_id = ? AND date = ? AND time = ?",
-      [user_id, date, time],
-    );
+        // 1. Vérifications de base 
+        const [users] = await connection.query("SELECT id FROM users WHERE id = ?", [user_id]);
+        if (users.length === 0) throw new Error("L'utilisateur n'existe pas.");
 
-    if (existingReservation.length > 0) {
-      throw new Error("User already has a reservation for this date and time");
-    }
+        const [existing] = await connection.query(
+            "SELECT id FROM reservations WHERE user_id = ? AND date = ? AND time = ? AND status != 'cancelled'",
+            [user_id, date, time]
+        );
+        if (existing.length > 0) throw new Error("Vous avez déjà une réservation à cette heure-là.");
 
-    //Check if  the number of people is greater than 0 or date and time are in the past
-    if (number_of_people <= 0) {
-      throw new Error("Number of people must be greater than 0");
-    }
-    if (new Date(`${date}T${time}`) < new Date()) {
-      throw new Error("Date and time must be in the future");
-    }
+        // Vérification de la disponibilité des tables
+        const tableNeeds = getRequiredTableSizes(number_of_people);
+        const availability = await checkTablesAvailability(connection, tableNeeds, date, time);
 
-    // Check if the restaurant is already fully booked for the given date and time
-    const openingSlot = await this.pool.query(
-      "SELECT available FROM opening_slots WHERE date_time = ?",
-      [date + "T" + time],
-    );
+        if (!availability.available) {
+            throw new Error(availability.error);
+        }
 
-    if (openingSlot.length === 0 || openingSlot[0].available <= 0) {
-      throw new Error("Restaurant is fully booked for the given date and time");
-    }
+        // Insérer la réservation
+        const [resRow] = await connection.query(
+            "INSERT INTO reservations (number_of_people, date, time, status, user_id, comment) VALUES (?, ?, ?, ?, ?, ?)",
+            [number_of_people, date, time, "pending", user_id, note]
+        );
+        
+        const reservation_id = resRow.insertId;
 
-    // Check if the total number of people is greater than the available seats for the given date and time
-    const totalPeople = await this.pool.query(
-      "SELECT SUM(number_of_people) as total FROM reservations WHERE date = ? AND time = ?",
-      [date, time],
-    );
-    const totalSeats = await this.pool.query(
-      "SELECT SUM(seats) as total FROM tables",
-    );
-    if (totalPeople[0].total + number_of_people > totalSeats[0].total) {
-      throw new Error("Not enough available seats for the given date and time");
-    }
+        for (const table_id of availability.tableIds) {
+            await connection.query(
+                "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
+                [reservation_id, table_id]
+            );
+        }
 
-    // Insert the new reservation into the database
-    const [rows] = await this.pool.query(
-      "INSERT INTO reservations (number_of_people, date, time, status, user_id, comment) VALUES (?, ?, ?, ?, ?, ?)",
-      [number_of_people, date, time, "pending", user_id, note],
-    );
+        await connection.commit();
+        return { id: reservation_id };
 
-    // Insert the reservation into the reservation_tables table to link it with a table
-    const reservation_id = rows.insertId;
-    const [tables] = await this.pool.query(
-      "SELECT id FROM tables WHERE seats >= ? ORDER BY seats ASC",
-      [number_of_people],
-    );
-    if (tables.length > 0) {
-      const table_id = tables[0].id;
-      await this.pool.query(
-        "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
-        [reservation_id, table_id],
-      );
-    }
-
-    return rows[0];
+      } catch (error) {
+          await connection.rollback();
+          throw error;
+      } finally {
+          connection.release();
+      }
   }
 
   //Method to update a reservation by ID
