@@ -85,7 +85,7 @@ router.get("/", adminMiddleware, async (req, res) => {
  *       500:
  *         description: Erreur serveur
  */
-router.get("/my-reservations", async (req, res) => {
+router.get("/my-reservations", clientMiddleware, async (req, res) => {
     const user_id = req.user.id || req.user.userId;
     try {
         const [reservation] = await reservationRepository.getReservation(user_id);
@@ -222,7 +222,7 @@ router.post("/", clientMiddleware, async (req, res) => {
  *       500:
  *         description: Erreur serveur
  */
-router.put("/:id", async (req, res) => {
+router.put("/:id", clientMiddleware, async (req, res) => {
     const { id } = req.params; 
     const validationResult = validateUpdateReservationRequest(req.body);
 
@@ -282,7 +282,7 @@ router.put("/:id", async (req, res) => {
  *       500:
  *         description: Erreur serveur
  */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminMiddleware, async (req, res) => {
     const id = req.params.id;
 
     if (!id) {
