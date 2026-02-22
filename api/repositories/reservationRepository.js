@@ -1,5 +1,6 @@
 const db = require("./config/db");
 const { getRequiredTableSizes } = require('../utils/tableAssigner');
+const { checkTablesAvailability } = require("../http/validators/tableValidator");
 
 class ReservationRepository {
   pool = db;
@@ -41,66 +42,46 @@ class ReservationRepository {
 
   // Method to create a new reservation
   async createReservation(user_id, number_of_people, date, time, note) {
-      const connection = await this.pool.getConnection();
-      
-      try {
-          await connection.beginTransaction();
+    const connection = await this.pool.getConnection();
+    
+    try {
+        await connection.beginTransaction();
 
-          const [users] = await connection.query("SELECT id FROM users WHERE id = ?", [user_id]);
-          if (users.length === 0) throw new Error("L'utilisateur n'existe pas.");
+        // 1. Vérifications de base 
+        const [users] = await connection.query("SELECT id FROM users WHERE id = ?", [user_id]);
+        if (users.length === 0) throw new Error("L'utilisateur n'existe pas.");
 
-          // Vérification des doublons
-          const [existing] = await connection.query(
-              "SELECT id FROM reservations WHERE user_id = ? AND date = ? AND time = ? AND status != 'cancelled'",
-              [user_id, date, time]
-          );
-          if (existing.length > 0) throw new Error("Vous avez déjà une réservation à cette heure-là.");
+        const [existing] = await connection.query(
+            "SELECT id FROM reservations WHERE user_id = ? AND date = ? AND time = ? AND status != 'cancelled'",
+            [user_id, date, time]
+        );
+        if (existing.length > 0) throw new Error("Vous avez déjà une réservation à cette heure-là.");
 
-          // Algo d'affectation des tables
-          const tableNeeds = getRequiredTableSizes(number_of_people);
-          const tablesToReserve = [];
-          const durationHours = "02:00:00"; 
+        // Vérification de la disponibilité des tables
+        const tableNeeds = getRequiredTableSizes(number_of_people);
+        const availability = await checkTablesAvailability(connection, tableNeeds, date, time);
 
-          // Recherche de disponibilité réelle
-          for (const [size, count] of Object.entries(tableNeeds)) {
-              const [available] = await connection.query(`
-                  SELECT id FROM tables 
-                  WHERE seats = ? 
-                  AND id NOT IN (
-                      SELECT rt.table_id 
-                      FROM reservation_tables rt
-                      JOIN reservations r ON rt.reservation_id = r.id
-                      WHERE r.date = ? 
-                      AND r.status != 'cancelled'
-                      AND r.time < ADDTIME(?, ?)
-                      AND ADDTIME(r.time, ?) > ?
-                  )
-                  LIMIT ?`, 
-                  [size, date, time, durationHours, durationHours, time, parseInt(count)]
-              );
+        if (!availability.available) {
+            throw new Error(availability.error);
+        }
 
-              if (available.length < count) {
-                  throw new Error(`Plus de table de ${size} places disponible.`);
-              }
-              tablesToReserve.push(...available.map(t => t.id));
-          }
+        // Insérer la réservation
+        const [resRow] = await connection.query(
+            "INSERT INTO reservations (number_of_people, date, time, status, user_id, comment) VALUES (?, ?, ?, ?, ?, ?)",
+            [number_of_people, date, time, "pending", user_id, note]
+        );
+        
+        const reservation_id = resRow.insertId;
 
-          const [resRow] = await connection.query(
-              "INSERT INTO reservations (number_of_people, date, time, status, user_id, comment) VALUES (?, ?, ?, ?, ?, ?)",
-              [number_of_people, date, time, "pending", user_id, note]
-          );
-          
-          const reservation_id = resRow.insertId;
+        for (const table_id of availability.tableIds) {
+            await connection.query(
+                "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
+                [reservation_id, table_id]
+            );
+        }
 
-          for (const table_id of tablesToReserve) {
-              await connection.query(
-                  "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
-                  [reservation_id, table_id]
-              );
-          }
-
-          await connection.commit();
-          return { id: reservation_id, tablesAssigned: tablesToReserve };
+        await connection.commit();
+        return { id: reservation_id };
 
       } catch (error) {
           await connection.rollback();

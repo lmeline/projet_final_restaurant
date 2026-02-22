@@ -20,50 +20,34 @@ function validateCreateTableRequest(body) {
 }
  
 // Function to check if the required tables are available for a given date and time
-async function checkTablesAvailability(requiredMap, date, time) {
-    try {
-        let selectedTableIds = [];
-        let alreadyPickedIds = [];
+async function checkTablesAvailability(connection, requiredMap, date, time) {
+    let selectedTableIds = [];
+    const durationHours = "02:00:00"; 
 
-        const requirements = Object.entries(requiredMap);
+    for (const [size, count] of Object.entries(requiredMap)) {
+        for (let i = 0; i < count; i++) {
+            const [rows] = await connection.query(`
+                SELECT t.id FROM tables t
+                WHERE t.seats = ? 
+                AND t.id NOT IN (
+                    SELECT rt.table_id FROM reservation_tables rt
+                    JOIN reservations r ON rt.reservation_id = r.id
+                    WHERE r.date = ? 
+                    AND r.status != 'cancelled'
+                    AND r.time < ADDTIME(?, ?)  -- Fin demandée
+                    AND ADDTIME(r.time, ?) > ?   -- Début demandé
+                )
+                ${selectedTableIds.length > 0 ? `AND t.id NOT IN (${selectedTableIds.join(',')})` : ''}
+                LIMIT 1
+            `, [size, date, time, durationHours, durationHours, time]);
 
-        for (const [size, count] of requirements) {
-            for (let i = 0; i < count; i++) {
-                
-                const query = `
-                    SELECT t.id 
-                    FROM tables t
-                    WHERE t.seats = ? 
-                    AND t.id NOT IN (
-                        SELECT rt.table_id 
-                        FROM reservation_tables rt
-                        JOIN reservations r ON rt.reservation_id = r.id
-                        WHERE r.date = ? AND r.time = ?
-                    )
-                    ${alreadyPickedIds.length > 0 ? `AND t.id NOT IN (${alreadyPickedIds.join(',')})` : ''}
-                    LIMIT 1
-                `;
-
-                const [rows] = await db.query(query, [size, date, time]);
-
-                if (rows.length === 0) {
-                    return { 
-                        available: false, 
-                        error: `Plus de table de ${size} places disponible pour ce créneau (besoin de ${count}).` 
-                    };
-                }
-
-                selectedTableIds.push(rows[0].id);
-                alreadyPickedIds.push(rows[0].id);
+            if (rows.length === 0) {
+                return { available: false, error: `Plus de table de ${size} places disponible.` };
             }
+            selectedTableIds.push(rows[0].id);
         }
-
-        return { available: true, tableIds: selectedTableIds };
-
-    } catch (error) {
-        console.error("Erreur tableValidator:", error);
-        return { available: false, error: "Erreur lors de la vérification des tables." };
     }
+    return { available: true, tableIds: selectedTableIds };
 }
 
 module.exports = { checkTablesAvailability, validateCreateTableRequest };
