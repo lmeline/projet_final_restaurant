@@ -19,8 +19,6 @@ const authMiddleware = require("./http/middlewares/auth");
 const adminMiddleware = require("./http/middlewares/admin");
 const loggerMiddleware = require("./http/middlewares/log");
 
-const { getRequiredTableSizes } = require("./utils/tableAssigner");
-const { checkTablesAvailability } = require("./http/validators/tableValidator");
 
 // Check the presence of the JWT_SECRET_KEY
 if (!process.env.JWT_SECRET_KEY) {

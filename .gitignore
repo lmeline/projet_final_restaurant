@@ -1,5 +1,6 @@
 *.env
 *.DS_Store
 node_modules/
+log/data/log.txt
 maskFile.md
 log/data/log.txt
