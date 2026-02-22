@@ -140,8 +140,11 @@ router.get("/my-reservations", async (req, res) => {
  *               properties:
  *                 message:
  *                   type: string
- *                 reservation:
- *                   type: object
+ *                   example: "Reservation created successfully"
+ *                 reservationId:
+ *                   type: integer
+ *                 tablesAssigned:
+ *                   type: array
  *       400:
  *         description: Erreur de validation ou données invalides
  *       401:
