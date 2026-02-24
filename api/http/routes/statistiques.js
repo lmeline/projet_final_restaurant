@@ -8,11 +8,67 @@ const statRepository = new StatRepository(pool);
 /**
  * @swagger
  * /statistiques:
- * get:
- * summary: Voir les statistiques du restaurant (Admin uniquement)
- * tags: [Admin]
- * security:
- * - bearerAuth: []
+ *   get:
+ *     summary: Récupérer les statistiques d'activité (Admin uniquement)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         description: Date de début pour filtrer les statistiques (YYYY-MM-DD)
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Statistiques récupérées avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     total_reservations:
+ *                       type: integer
+ *                     total_guests:
+ *                       type: integer
+ *                     total_cancelled:
+ *                       type: integer
+ *                     cancellation_rate:
+ *                       type: number
+ *                       format: float
+ *                       example: 10.5
+ *                 details:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date:
+ *                         type: string
+ *                         format: date
+ *                       daily_guests:
+ *                         type: integer
+ *                       peakHours:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             time:
+ *                               type: string
+ *                               example: "19:30:00"
+ *                             reservation_count:
+ *                               type: integer
+ *       400:
+ *         description: Format de date invalide
+ *       401:
+ *         description: Token manquant ou invalide
+ *       403:
+ *         description: Accès refusé - Droits administrateur requis
+ *       500:
+ *         description: Erreur interne du serveur
  */
 router.get("/", async (req, res) => {
     const validation = validateStatRequest(req.query);
