@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const { validateStatRequest } = require("../validators/statValidator");
 const StatRepository = require("../../repositories/statRepository");
 const pool = require("../../repositories/config/db");
 const statRepository = new StatRepository(pool);
@@ -14,12 +13,6 @@ const statRepository = new StatRepository(pool);
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: query
- *         name: start_date
- *         description: Date de début pour filtrer les statistiques (YYYY-MM-DD)
- *         schema:
- *           type: string
- *           format: date
  *     responses:
  *       200:
  *         description: Statistiques récupérées avec succès
@@ -71,9 +64,6 @@ const statRepository = new StatRepository(pool);
  *         description: Erreur interne du serveur
  */
 router.get("/", async (req, res) => {
-    const validation = validateStatRequest(req.query);
-    if (validation.error) return res.status(400).json(validation);
-
     try {
         const globalStats = await statRepository.getGlobalStats();
         const dailyStats = await statRepository.getClientsPerDay();
