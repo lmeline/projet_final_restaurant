@@ -13,6 +13,7 @@ const menuRouter = require("./http/routes/menu");
 const authRouter = require("./http/routes/auth");
 const reservationRouter = require("./http/routes/reservations");
 const tableRouter = require("./http/routes/tables");
+const statistiqueRouter = require("./http/routes/statistiques");
 const authMiddleware = require("./http/middlewares/auth");
 const adminMiddleware = require("./http/middlewares/admin");
 
@@ -39,6 +40,9 @@ app.use("/menu", menuRouter);
 
 // Use of routes defined in /routes/tables.js with /tables prefix
 app.use("/tables", authMiddleware, adminMiddleware, tableRouter);
+
+// Use of routes defined in /routes/statistiques.js with /statistiques prefix
+app.use("/statistiques", authMiddleware, adminMiddleware, statistiqueRouter);
 
 //Base Endpoint
 app.get("/", (req, res) => {
