@@ -1,29 +1,35 @@
-// Utility function to calculate the required table sizes based on the number of people
-function getRequiredTableSizes(peopleCount) {
-    if (!peopleCount || peopleCount <= 0) return [];
+function assignTables(availableTables, peopleCount) {
+  let bestCombination = null;
+  let bestWaste = Infinity;
 
-    const standardSizes = [8, 6, 4, 2]; 
-    let remaining = peopleCount;
-    let requiredSizesMap = {};
+  const n = availableTables.length;
 
-    while (remaining > 0) {
-        let suitableSize = [...standardSizes]
-            .sort((a, b) => a - b)
-            .find(size => size >= remaining);
+  for (let mask = 1; mask < (1 << n); mask++) {
+    let combination = [];
+    let totalSeats = 0;
 
-        let sizeToTable;
-        if (suitableSize) {
-            sizeToTable = suitableSize;
-            remaining -= suitableSize;
-        } else {
-            sizeToTable = Math.max(...standardSizes);
-            remaining -= sizeToTable;
-        }
-
-        requiredSizesMap[sizeToTable] = (requiredSizesMap[sizeToTable] || 0) + 1;
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) {
+        combination.push(availableTables[i]);
+        totalSeats += availableTables[i].seats;
+      }
     }
 
-    return requiredSizesMap;
+    if (totalSeats >= peopleCount) {
+      const waste = totalSeats - peopleCount;
+
+      if (
+        waste < bestWaste ||
+        (waste === bestWaste && combination.length < bestCombination?.length)
+      ) {
+        bestWaste = waste;
+        bestCombination = combination;
+      }
+    }
+  }
+
+  return bestCombination;
 }
 
-module.exports = { getRequiredTableSizes };
+
+module.exports = assignTables;

@@ -1,13 +1,16 @@
 const db = require("./config/db");
-const { getRequiredTableSizes } = require('../utils/tableAssigner');
-const { checkTablesAvailability } = require("../http/validators/tableValidator");
 
 class ReservationRepository {
   pool = db;
 
   // Method to list all reservations
   async listReservations(parsedParams) {
-    let sqlQuery = "SELECT * FROM reservations";
+    let sqlQuery = `SELECT
+      r.*,
+      group_concat(DISTINCT t.id) as tables_id
+    FROM reservations r
+    JOIN reservation_tables rt ON rt.reservation_id = r.id
+    JOIN \`tables\` t ON rt.table_id = t.id`;
     let filters = [];
     let filtersValues = [];
 
@@ -26,22 +29,32 @@ class ReservationRepository {
     if (filters.length > 0) {
       sqlQuery += " WHERE " + filters.join(" AND ") + ";";
     }
+    
+    sqlQuery += " GROUP BY r.id";
 
     const rows = await this.pool.query(sqlQuery, filtersValues);
     return rows;
   }
 
-  // Method to get a specific reservation by ID
-  async getReservation(user_id) {
-    const rows = await this.pool.query(
-      "SELECT * FROM reservations WHERE user_id = ?",
+  // Method to get reservations for a user
+  async getReservationsForUser(user_id) {
+    const [rows] = await this.pool.query(
+      `SELECT
+        r.*,
+        group_concat(DISTINCT t.id) as tables_id
+      FROM reservations r
+      JOIN reservation_tables rt ON rt.reservation_id = r.id
+      JOIN \`tables\` t ON rt.table_id = t.id
+      WHERE r.user_id = ?
+      GROUP BY r.id`,
       [user_id],
     );
+
     return rows;
   }
 
   // Method to create a new reservation
-  async createReservation(user_id, number_of_people, date, time, note) {
+  async createReservation(user_id, number_of_people, date, time, note, assignedTables) {
     const connection = await this.pool.getConnection();
     
     try {
@@ -49,39 +62,32 @@ class ReservationRepository {
 
         // 1. Vérifications de base 
         const [users] = await connection.query("SELECT id FROM users WHERE id = ?", [user_id]);
-        if (users.length === 0) throw new Error("L'utilisateur n'existe pas.");
+        if (users.length === 0) throw new Error("User does not exist.");
 
         const [existing] = await connection.query(
             "SELECT id FROM reservations WHERE user_id = ? AND date = ? AND time = ? AND status != 'cancelled'",
             [user_id, date, time]
         );
-        if (existing.length > 0) throw new Error("Vous avez déjà une réservation à cette heure-là.");
-
-        // Vérification de la disponibilité des tables
-        const tableNeeds = getRequiredTableSizes(number_of_people);
-        const availability = await checkTablesAvailability(connection, tableNeeds, date, time);
-
-        if (!availability.available) {
-            throw new Error(availability.error);
-        }
+        if (existing.length > 0) throw new Error("User already have a reservation at this time.");
 
         // Insérer la réservation
         const [resRow] = await connection.query(
             "INSERT INTO reservations (number_of_people, date, time, status, user_id, comment) VALUES (?, ?, ?, ?, ?, ?)",
             [number_of_people, date, time, "pending", user_id, note]
         );
-        
-        const reservation_id = resRow.insertId;
+      
+        if (!resRow.insertId) throw new Error("Failed to create reservation.");
 
-        for (const table_id of availability.tableIds) {
-            await connection.query(
+      for (const table of assignedTables) {
+          const [result] = await connection.query(
                 "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
-                [reservation_id, table_id]
+                [resRow.insertId, table.id]
             );
+            if (result.affectedRows != 1) throw new Error("Failed to create reservation..");
         }
 
         await connection.commit();
-        return { id: reservation_id };
+        return { id: resRow.insertId };
 
       } catch (error) {
           await connection.rollback();
@@ -92,45 +98,41 @@ class ReservationRepository {
   }
 
   //Method to update a reservation by ID
-  async updateReservation(id, updates, user_id) {
-    const [reservation] = await this.pool.query(
-      "SELECT * FROM reservations WHERE id = ?",
-      [id],
-    );
-    if (reservation.length === 0) {
-      throw new Error("Reservation not found");
+  async updateReservation(id, newReservation, assignedTables = null) {
+    const connection = await this.pool.getConnection();
+    
+    try {
+      if (assignedTables) {
+        
+        await connection.query(
+          "DELETE FROM reservation_tables WHERE reservation_id = ?",
+          [id]
+        )
+        
+        for (const table of assignedTables) {
+          const [result] = await connection.query(
+            "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
+            [id, table.id]
+          );
+          if (result.affectedRows != 1) throw new Error("Failed to update reservation.");
+        }
+      }
+      
+      const result = await connection.query(
+        `UPDATE reservations 
+        SET number_of_people = ?, date = ?, time = ?, note = ?
+        WHERE id = ?`,
+        [newReservation.number_of_people, newReservation.date, newReservation.time, newReservation.note, id]
+      )
+      
+      if (result.affectedRows != 1) throw new Error("Failed to update reservation.")
+      
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
     }
-    if (reservation[0].user_id !== user_id) {
-      throw new Error("Access denied");
-    }
-    if (reservation[0].status !== "pending") {
-      throw new Error("Reservation is not pending");
-    }
-
-    const allowedFields = [
-      "number_of_people",
-      "date",
-      "time",
-      "comment",
-      "status",
-    ];
-    const fields = Object.keys(updates).filter((field) =>
-      allowedFields.includes(field),
-    );
-
-    if (fields.length === 0) {
-      throw new Error("No valid fields provided for update");
-    }
-
-    const values = fields.map((field) => updates[field]);
-    const setClause = fields.map((field) => `\`${field}\` = ?`).join(", ");
-
-    const query = `UPDATE reservations SET ${setClause} WHERE id = ?`;
-    values.push(id);
-
-    const [result] = await this.pool.query(query, values);
-
-    return result;
   }
 
   // Method to delete a reservation by ID
@@ -168,6 +170,38 @@ class ReservationRepository {
     );
     return reservation;
   }
+  
+  async checkOpenSlotAvailability(date, time) {
+    const [slot] = await this.pool.query(
+      `select 
+        IF(COUNT(os.id) > 0, 1, 0) as availability
+      from opening_slots os
+      where 
+        TIMESTAMP(?, ?) BETWEEN os.date_time and DATE_ADD(os.date_time, INTERVAL os.duration MINUTE)`,
+      [date, time])
+    
+    return slot[0].availability === 1;
+  }
+  
+  async getReservationById(id) {
+    const [reservation] = await this.pool.query(
+      `SELECT
+        r.*,
+        group_concat(DISTINCT t.id) as tables_id
+      FROM reservations r
+      JOIN reservation_tables rt ON rt.reservation_id = r.id
+      JOIN \`tables\` t ON rt.table_id = t.id
+      WHERE r.id = ?
+      GROUP BY r.id`,
+      [id],
+    );
+    if (reservation.length === 0) {
+      throw new Error("Reservation not found");
+    }
+    return reservation;
+  }
+  
+  
 }
 
 module.exports = new ReservationRepository();
