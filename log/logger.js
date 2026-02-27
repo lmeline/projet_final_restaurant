@@ -40,5 +40,11 @@ eventBus.on('auth:failure', ({ email, ip }) => {
     writeLog(`auth:failure | '${email}' from ip adress [${ip}]`);
 });
 
+eventBus.on('reservation:failure', ({ email, ip }) => {
+    writeLog(`reservation:failure | '${email}' from ip adress [${ip}]`);
+});
 
+eventBus.on('reservation:success', ({ email, ip }) => {
+    writeLog(`reservation:success | '${email}' from ip adress [${ip}]`);
+});
 
