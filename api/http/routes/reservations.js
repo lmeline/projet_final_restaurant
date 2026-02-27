@@ -1,10 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const reservationRepository = require("../../repositories/reservationRepository");
+const tableRepository = require("../../repositories/tableRepository");
 const adminMiddleware = require("../middlewares/admin");
 const clientMiddleware = require("../middlewares/client");
 const {validateCreateReservationRequest, validateUpdateReservationRequest} = require("../validators/reservationValidator");
 const queryValidator = require("../validators/utils/queryValidator");
+const assignTables = require("../../utils/tableAssigner");
 
 /**
  * @swagger
@@ -47,18 +49,24 @@ const queryValidator = require("../validators/utils/queryValidator");
  */
 router.get("/", adminMiddleware, async (req, res) => {
     let parsedParams = queryValidator(req.query, {
-        status: ["pending", "confirmed", "cancelled"],
-        date: "date"
+      status: ["pending", "confirmed", "cancelled"],
+      date: "date"
     })
 
     if (parsedParams.error) {
-        return res.status(400).json(parsedParams) ;
+      return res.status(400).json(parsedParams) ;
     }
     try {
-        const [reservations] = await reservationRepository.listReservations(parsedParams);
-        res.json(reservations);
+      let [reservations] = await reservationRepository.listReservations(parsedParams);
+      
+      reservations = reservations.map(reservation => ({
+          ...reservation,
+          tables: reservation.tables_id.split(',').map(Number)
+      }))
+      
+      res.json(reservations);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     } 
 });
 
@@ -85,14 +93,21 @@ router.get("/", adminMiddleware, async (req, res) => {
  *       500:
  *         description: Erreur serveur
  */
-router.get("/my-reservations", clientMiddleware, async (req, res) => {
+router.get("/my-reservations", async (req, res) => {
     const user_id = req.user.id || req.user.userId;
     try {
-        const [reservation] = await reservationRepository.getReservation(user_id);
-         if (reservation.length === 0) {
-            return res.status(404).json({ error: "No reservations found for this user" });
-        } 
-        res.json(reservation);
+      let reservations = await reservationRepository.getReservationsForUser(user_id);
+      
+      if (reservations.length === 0) {
+        return res.status(404).json({ error: "No reservations found for this user" });
+      }
+      
+      reservations = reservations.map(reservation => ({
+          ...reservation,
+          tables: reservation.tables_id.split(',').map(Number)
+      }))
+      
+      res.json(reservations);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -152,7 +167,7 @@ router.get("/my-reservations", clientMiddleware, async (req, res) => {
  *       500:
  *         description: Erreur serveur
  */
-router.post("/", clientMiddleware, async (req, res) => {
+router.post("/", async (req, res) => {
     const validationResult = validateCreateReservationRequest(req.body);
 
     if (validationResult.error) {
@@ -162,12 +177,33 @@ router.post("/", clientMiddleware, async (req, res) => {
     const { number_of_people, date, time, note } = req.body;
     const user_id = req.user.id || req.user.userId;
 
-    try {
-        const reservation = await reservationRepository.createReservation(user_id, number_of_people, date, time, note);
-        res.status(201).json({ message: "Reservation created successfully", reservationId: reservation.id, tablesAssigned: reservation.tablesAssigned });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
+  try {
+
+    const restaurantIsOpen = await reservationRepository.checkOpenSlotAvailability(date, time);
+    if (!restaurantIsOpen) {
+      return res.status(400).json({ error: "Restaurant is closed at this time." });
     }
+      
+    const availableTables = await tableRepository.getAvailableTables(date, time);
+    if (!availableTables) {
+      return res.status(409).json({ error: "Restaurant is full for this time slot." });
+    }
+      
+    const assignedTables = assignTables(availableTables, number_of_people);
+    if (!assignedTables) {
+      return res.status(409).json({ error: "No available tables for this number of people." });
+    }
+    
+    const reservation_id = await reservationRepository.createReservation(user_id, number_of_people, date, time, note, assignedTables);
+    const reservation = await reservationRepository.getReservationsForUser(reservation_id.id)
+
+    res.status(201).json({
+      message: "Reservation created successfully",
+      reservation: reservation
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 /**
@@ -222,32 +258,62 @@ router.post("/", clientMiddleware, async (req, res) => {
  *       500:
  *         description: Erreur serveur
  */
-router.put("/:id", clientMiddleware, async (req, res) => {
+router.put("/:id", async (req, res) => {
     const { id } = req.params; 
-    const validationResult = validateUpdateReservationRequest(req.body);
+    const newReservation = validateUpdateReservationRequest(req.body);
 
-    if (validationResult.error) {
-        return res.status(400).json(validationResult);
+    if (newReservation.error) {
+        return res.status(400).json(newReservation);
     }
 
     const user_id = req.user.id || req.user.userId;
 
     try {
-        const result = await reservationRepository.updateReservation(id, validationResult, user_id);
-        res.json({
-            message: "Reservation updated successfully",
-            affectedRows: result.affectedRows
-       });
-    } catch (error) {
-        if (error.message === "Reservation not found") {
-            res.status(404).json({ error: error.message });
-        } else if (error.message === "Only pending reservations can be modified") {
-            res.status(400).json({ error: error.message });
-        }  else if (error.message === "Access denied") {
-            res.status(403).json({ error: "You can only update your own reservations" });
-        } else {
-            res.status(500).json({ error: error.message });
+      const currentReservation = await reservationRepository.getReservationById(id);
+      
+      if (!currentReservation) {
+        throw new Error("Reservation not found")
+      }
+        
+      if (currentReservation.user_id !== user_id) {
+        throw new Error("Access denied");
+      }
+        
+      if (currentReservation.status !== "pending") {
+        throw new Error("Only pending reservations can be modified");
+      }
+      
+      let assignedTables = null;
+        
+      if (currentReservation.date !== newReservation.date
+        || currentReservation.time !== newReservation.time
+        || currentReservation.number_of_people !== newReservation.number_of_people
+      ) {
+        const restaurantIsOpen = await reservationRepository.checkOpenSlotAvailability(newReservation.date, newReservation.time);
+        if (!restaurantIsOpen) {
+          return res.status(400).json({ error: "Restaurant is closed at this time." });
         }
+            
+        const availableTables = await tableRepository.getAvailableTables(newReservation.date, newReservation.time, id);
+        if (!availableTables) {
+          return res.status(409).json({ error: "Restaurant is full for this time slot." });
+        }
+        
+        assignedTables = assignTables(availableTables, number_of_people)
+        if (!assignedTables) {
+          return res.status(409).json({ error: "No available tables for this number of people." });
+        }
+      }
+        
+      await reservationRepository.updateReservation(id, newReservation, assignedTables);
+      
+      const updatedReservation = await reservationRepository.getReservationById(id);
+      res.json({
+          message: "Reservation updated successfully",
+          reservation: updatedReservation
+      });
+    } catch (_) {
+      res.status(500).json({ error: "Internal server error" });
     }
 });
 

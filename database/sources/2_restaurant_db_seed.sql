@@ -13,7 +13,6 @@ USE restaurant_db;
 INSERT INTO `users` (id, firstname, lastname, phone, email, password_hash, role) VALUES
 (1, 'Jean', 'Dupont', '0601020304', 'jean.dupont@email.com', 'hash_password_123', 'client'),
 (2, 'Marie', 'Curie', '0611223344', 'marie.curie@email.com', 'hash_password_456', 'client'),
-(3, 'Admin', 'Restaurant', '0102030405', 'admin@restaurant.com', 'admin_secure_hash_789', 'admin');
 
 -- 2. Tables (IDs 1 à 6)
 INSERT INTO `tables` (id, seats) VALUES
