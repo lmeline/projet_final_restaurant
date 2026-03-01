@@ -1,13 +1,5 @@
-SET FOREIGN_KEY_CHECKS = 0; -- On coupe la surveillance pour nettoyer
-TRUNCATE TABLE reservation_tables;
-TRUNCATE TABLE reservations;
-TRUNCATE TABLE tables;
-TRUNCATE TABLE users;
-TRUNCATE TABLE menu_items;
-TRUNCATE TABLE opening_slots;
-SET FOREIGN_KEY_CHECKS = 1; -- On remet la surveillance
 
-USE restaurant_db;
+USE db_name_placeholder;
 
 -- 1. Utilisateurs (IDs 1, 2, 3)
 INSERT INTO `users` (id, firstname, lastname, phone, email, password_hash, role) VALUES
