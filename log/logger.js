@@ -3,7 +3,6 @@ const path = require("path")
 const eventBus = require("../eventBus")
 const logFilePath = path.join(__dirname, "data", "log.txt")
 
-
 function writeLog(message) {
     const now = new Date().toISOString()
     const logLine = `[${now}] | ${message}\n`
@@ -18,8 +17,6 @@ function displayLog(message) {
     const now = new Date().toISOString();
     console.log(`[${now}] | ${message}`)
 }
-
-
 
 eventBus.on("route:access", ({ endpoint, method, email, ip }) => {
     const email_line = email ? ` by '${email}'` : "";
@@ -40,11 +37,10 @@ eventBus.on('auth:failure', ({ email, ip }) => {
     writeLog(`auth:failure | '${email}' from ip adress [${ip}]`);
 });
 
-eventBus.on('reservation:failure', ({ email, ip }) => {
-    writeLog(`reservation:failure | '${email}' from ip adress [${ip}]`);
+eventBus.on('reservation:failure', ({reservation_id,user_id, email, ip }) => {
+    writeLog(`reservation:failure | '${reservation_id}' | '${user_id}' | '${email}' from ip adress [${ip}]`);
 });
 
-eventBus.on('reservation:success', ({ email, ip }) => {
-    writeLog(`reservation:success | '${email}' from ip adress [${ip}]`);
+eventBus.on('reservation:success', ({reservation_id,user_id, email, ip }) => {
+    writeLog(`reservation:success | reservation_id '${reservation_id}' | user_id '${user_id}' |  '${email}' from ip adress [${ip}]`);
 });
-

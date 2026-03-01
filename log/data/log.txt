@@ -1,0 +1,8 @@
+
+[2026-02-20T11:26:38.047Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
+[2026-02-20T11:27:52.015Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
+[2026-02-20T11:28:02.205Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
+[2026-02-20T11:28:50.382Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
+[2026-02-20T11:29:13.815Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
+[2026-02-22T12:07:31.065Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
+[2026-02-22T12:08:37.526Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]

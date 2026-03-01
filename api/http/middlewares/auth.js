@@ -1,7 +1,7 @@
 require('dotenv').config();
 const { verifyToken } = require("../../utils/jwtTokenManager");
-const SECRET_KEY = process.env.JWT_SECRET_KEY;
 
+// Middleware to check if the user is authenticated by verifying the JWT token
 function authMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(" ")[1];
