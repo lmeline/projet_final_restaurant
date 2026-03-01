@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const tableRepository = require("../../repositories/tableRepository");
-const tableValidator = require("../validators/tableValidator");
+const { checkTablesAvailability, validateCreateTableRequest } = require("../validators/tableValidator");
 
 /**
  * @swagger
@@ -79,7 +79,7 @@ router.get("/", async (req, res) => {
  *         description: Erreur serveur
  */
 router.post("/", async(req, res) => {
-    const parsedBody = tableValidator(req.body);
+    const parsedBody = validateCreateTableRequest(req.body);
 
     if (parsedBody.error) {
         return res.status(400).json(parsedBody);

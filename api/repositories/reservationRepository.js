@@ -136,23 +136,13 @@ class ReservationRepository {
   }
 
   // Method to delete a reservation by ID
-  async deleteReservation(id, user_id) {
-    const [reservation] = await this.pool.query(
-      "SELECT * FROM reservations WHERE id = ?",
-      [id],
-    );
-    if (reservation.length === 0 || reservation[0].user_id !== user_id) {
-      throw new Error("Reservation not found or access denied");
-    }
-    const rows = await this.pool.query(
-      "DELETE FROM reservation_tables WHERE reservation_id = ?",
-      [id],
-    );
-    const rows2 = await this.pool.query(
-      "DELETE FROM reservations WHERE id = ?",
-      [id],
-    );
-    return rows2;
+  async deleteReservation(id) {
+      const result = await this.pool.query(
+        "UPDATE reservations SET status = 'cancelled' WHERE id = ?",
+        [id],
+      );
+    
+      return result
   }
 
   // Method to validate a reservation by ID
