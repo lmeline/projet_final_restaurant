@@ -4,11 +4,11 @@ USE db_name_placeholder;
 -- 1. Utilisateurs (IDs 1, 2, 3)
 INSERT INTO `users` (id, firstname, lastname, phone, email, password_hash, role) VALUES
 (1, 'Jean', 'Dupont', '0601020304', 'jean.dupont@email.com', 'hash_password_123', 'client'),
-(2, 'Marie', 'Curie', '0611223344', 'marie.curie@email.com', 'hash_password_456', 'client'),
+(2, 'Marie', 'Curie', '0611223344', 'marie.curie@email.com', 'hash_password_456', 'client');
 
 -- 2. Tables (IDs 1 à 6)
-INSERT INTO `tables` (id, seats) VALUES
-(1, 2), (2, 2), (3, 4), (4, 4), (5, 6), (6, 8);
+INSERT INTO `tables` (seats) VALUES
+(2), (2), (4), (4), (6), (8);
 
 -- 3. Menu
 INSERT INTO `menu_items` (name, description, price, category) VALUES
