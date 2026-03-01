@@ -372,9 +372,8 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
         if (result.affectedRows === 0) {
             res.status(404).json({ error: "Reservation not found" });
         } else {
-            res.json({ message: "Reservation deleted successfully" });
-            eventBus.emit("reservation:delete", { id, user_id });
             res.json({ message: "Reservation cancelled successfully" });
+           eventBus.emit("reservation:cancel", { reservation_id: id });
         }
     } catch (error) {
         res.status(500).json({ error: error.message });

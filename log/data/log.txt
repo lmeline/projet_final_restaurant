@@ -17,3 +17,10 @@
 [2026-03-01T15:13:10.334Z] | table:creation | id 'undefined' | seats '5'
 [2026-03-01T15:14:21.833Z] | [route:access] | [POST /tables] | from IP [::1]
 [2026-03-01T15:14:21.846Z] | table:creation | id '14' | seats '5'
+[2026-03-01T15:17:54.191Z] | [route:access] | [DELETE /reservations] | from IP [::1]
+[2026-03-01T15:27:14.239Z] | [route:access] | [DELETE /reservations] | from IP [::1]
+[2026-03-01T15:27:14.256Z] | reservation:cancel | reservation_id 'undefined'
+[2026-03-01T15:28:22.941Z] | [route:access] | [DELETE /reservations] | from IP [::1]
+[2026-03-01T15:28:22.956Z] | reservation:cancel | reservation_id 'undefined'
+[2026-03-01T15:28:59.678Z] | [route:access] | [DELETE /reservations] | from IP [::1]
+[2026-03-01T15:28:59.695Z] | reservation:cancel | reservation_id '6'
