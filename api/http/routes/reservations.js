@@ -261,7 +261,7 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
     const { id } = req.params; 
     const newReservation = validateUpdateReservationRequest(req.body);
-
+    
     if (newReservation.error) {
         return res.status(400).json(newReservation);
     }
@@ -270,19 +270,19 @@ router.put("/:id", async (req, res) => {
 
     try {
       const currentReservation = await reservationRepository.getReservationById(id);
-      
+
       if (!currentReservation) {
-        throw new Error("Reservation not found")
+        return res.status(404).json({ error: "Reservation not found" });
       }
         
-      if (currentReservation.user_id !== user_id) {
-        throw new Error("Access denied");
+      if (currentReservation.user_id !== user_id || ) {
+        return res.status(403).json({ error: "Access denied" });
       }
         
       if (currentReservation.status !== "pending") {
-        throw new Error("Only pending reservations can be modified");
+        return res.status(400).json({ error: "Only pending reservations can be modified" });
       }
-      
+      console.log("coucou")
       let assignedTables = null;
         
       if (currentReservation.date !== newReservation.date
@@ -351,17 +351,16 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", adminMiddleware, async (req, res) => {
     const id = req.params.id;
 
-    if (!id) {
-        return res.status(400).json({ error: "Reservation ID is required" });
+    if (!id || Number.isNaN(Number(id))) {
+        return res.status(400).json({ error: "Reservation ID is required and must be a integer" });
     }
 
-    const user_id = req.user.id || req.user.userId;
     try {
-        const result = await reservationRepository.deleteReservation(id, user_id);
+        const result = await reservationRepository.deleteReservation(id);
         if (result.affectedRows === 0) {
-            res.status(404).json({ error: "Reservation not found or access denied" });
+            res.status(404).json({ error: "Reservation not found" });
         } else {
-            res.json({ message: "Reservation deleted successfully" });
+            res.json({ message: "Reservation cancelled successfully" });
         }
     } catch (error) {
         res.status(500).json({ error: error.message });
