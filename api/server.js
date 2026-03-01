@@ -41,7 +41,7 @@ app.use("/reservations", authMiddleware, loggerMiddleware, reservationRouter);
 app.use("/menu", loggerMiddleware, menuRouter);
 
 // Use of routes defined in /routes/tables.js with /tables prefix
-app.use("/tables", authMiddleware, adminMiddleware, tableRouter);
+app.use("/tables", authMiddleware,loggerMiddleware, adminMiddleware, tableRouter);
 
 // Use of routes defined in /routes/statistiques.js with /statistiques prefix
 app.use("/statistiques", authMiddleware, adminMiddleware, statistiqueRouter);

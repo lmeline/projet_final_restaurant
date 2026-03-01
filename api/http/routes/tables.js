@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const tableRepository = require("../../repositories/tableRepository");
 const { checkTablesAvailability, validateCreateTableRequest } = require("../validators/tableValidator");
+const eventBus = require("../../../eventBus");
 
 /**
  * @swagger
@@ -84,10 +85,9 @@ router.post("/", async(req, res) => {
     if (parsedBody.error) {
         return res.status(400).json(parsedBody);
     }
-
     try {
         const result = await tableRepository.createTable(parsedBody.capacity);
-
+        
         res.json({
             message: "Table created successfully",
             table: {
@@ -95,6 +95,7 @@ router.post("/", async(req, res) => {
                 seats: parsedBody.capacity
             }
         });
+    eventBus.emit("table:creation", {id: result.insertId, capacity: parsedBody.capacity,  });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

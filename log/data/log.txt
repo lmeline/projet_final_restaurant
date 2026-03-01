@@ -6,3 +6,14 @@
 [2026-02-20T11:29:13.815Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
 [2026-02-22T12:07:31.065Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
 [2026-02-22T12:08:37.526Z] | [route:access] | [GET /menu] | from IP [::ffff:127.0.0.1]
+[2026-03-01T15:02:25.048Z] | auth:attempt | 'lolo@lol.com' from ip adress [::1]
+[2026-03-01T15:02:25.049Z] | auth:success | 'lolo@lol.com' from ip adress [::1]
+[2026-03-01T15:04:25.797Z] | [route:access] | [POST /tables] | from IP [::1]
+[2026-03-01T15:05:49.569Z] | [route:access] | [POST /tables] | from IP [::1]
+[2026-03-01T15:05:49.571Z] | table:creation
+[2026-03-01T15:10:52.708Z] | [route:access] | [POST /tables] | from IP [::1]
+[2026-03-01T15:10:52.709Z] | table:creation | capacity '5'
+[2026-03-01T15:13:10.332Z] | [route:access] | [POST /tables] | from IP [::1]
+[2026-03-01T15:13:10.334Z] | table:creation | id 'undefined' | seats '5'
+[2026-03-01T15:14:21.833Z] | [route:access] | [POST /tables] | from IP [::1]
+[2026-03-01T15:14:21.846Z] | table:creation | id '14' | seats '5'

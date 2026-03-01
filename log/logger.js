@@ -44,3 +44,15 @@ eventBus.on('reservation:failure', ({reservation_id,user_id, email, ip }) => {
 eventBus.on('reservation:success', ({reservation_id,user_id, email, ip }) => {
     writeLog(`reservation:success | reservation_id '${reservation_id}' | user_id '${user_id}' |  '${email}' from ip adress [${ip}]`);
 });
+
+eventBus.on('reservation:cancel', ({reservation_id,user_id, email, ip }) => {
+    writeLog(`reservation:cancel | reservation_id '${reservation_id}' | user_id '${user_id}' |  '${email}' from ip adress [${ip}]`);
+});
+
+eventBus.on('reservation:modify', ({reservation_id,user_id, email, ip }) => {
+    writeLog(`reservation:modify | reservation_id '${reservation_id}' | user_id '${user_id}' |  '${email}' from ip adress [${ip}]`);
+});
+
+eventBus.on('table:creation', ({id,capacity}) => {
+    writeLog(`table:creation | id '${id}' | seats '${capacity}'`)
+});
