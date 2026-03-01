@@ -94,6 +94,7 @@ router.post("/", async(req, res) => {
                 seats: parsedBody.capacity
             }
         });
+    eventBus.emit("table:creation", {id: result.insertId, capacity: parsedBody.capacity,  });
     } catch (error) {
         eventBus.emit("table:creation:failed", {StatusCode: 500, error: error.message, capacity: parsedBody.capacity});
         res.status(500).json({ error: error.message });
