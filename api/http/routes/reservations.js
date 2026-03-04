@@ -261,6 +261,8 @@ router.post("/", async (req, res) => {
     
     const reservation_id = await reservationRepository.createReservation(user_id, number_of_people, date, time, note, assignedTables);
     const reservation = await reservationRepository.getReservationsForUser(reservation_id.id)
+
+    const { tables_id, ...data } = reservation;
     
     eventBus.emit("reservation:create:success", {
       reservationId: reservation_id.id,
@@ -281,7 +283,7 @@ router.post("/", async (req, res) => {
 
   } catch (error) {
     eventBus.emit("reservation:failure", {StatusCode: 500, error: error.message});
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -390,8 +392,8 @@ router.put("/:id", async (req, res) => {
         eventBus.emit("reservation:modify:failure", {StatusCode: 404, error: "Reservation not found"});
         return res.status(404).json({ error: "Reservation not found" });
       }
-        
-      if (currentReservation.user_id !== user_id ) {
+
+      if (currentReservation.user_id !== user_id && req.user.role !== "admin") {
         eventBus.emit("reservation:modify:failure", {StatusCode: 403, error: "Access denied"});
         return res.status(403).json({ error: "Access denied" });
       }
@@ -435,7 +437,10 @@ router.put("/:id", async (req, res) => {
 
       res.json({
           message: "Reservation updated successfully",
-          reservation: updatedReservation
+          reservation: {
+            ...data,
+            tables: tables_id ? tables_id.split(',').map(Number) : []
+          }
       });
       eventBus.emit("reservation:modify:success", {
         reservationId: id,
@@ -497,10 +502,11 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
         } else {
             res.json({ message: "Reservation cancelled successfully" });
            eventBus.emit("reservation:cancel:success", { reservationId: id });
+
         }
     } catch (error) {
         eventBus.emit("reservation:cancel:failed", {StatusCode: 500, error: error.message });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 
@@ -572,16 +578,24 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
 router.patch("/:id/validate", adminMiddleware, async (req, res) => {
     const id = req.params.id;
     try {
-        const reservation = await reservationRepository.validateReservation(id);
-        res.json({ message: "Reservation validated successfully", reservation });
-        eventBus.emit("reservation:validate:success", { reservationId: id });
+        const [reservation] = await reservationRepository.validateReservation(id);
+        const {tables_id, ...data} = reservation
+
+        res.json({ 
+          message: "Reservation validated successfully", 
+          reservation : {
+            ...data,
+            tables: tables_id ? tables_id.split(',').map(Number) : []
+          }
+         });
+         eventBus.emit("reservation:validate:success", { reservationId: id });
     } catch (error) {
         if (error.message === "Reservation not found") {
             eventBus.emit("reservation:validate:failure", {StatusCode: 404, error: error.message });
-            res.status(404).json({ error: error.message });
+            res.status(404).json({ error: "Reservation not found" });
         } else {
             eventBus.emit("reservation:validate:failure", {StatusCode: 500, error: error.message });
-            res.status(500).json({ error: error.message });
+            res.status(500).json({ error: "internal server error" });
         }
     }
 });
