@@ -83,11 +83,12 @@ router.post("/", async(req, res) => {
     const parsedBody = validateCreateTableRequest(req.body);
 
     if (parsedBody.error) {
+        eventBus.emit("table:creation:failed", {StatusCode: 400, error: parsedBody.message, capacity: parsedBody?.capacity});
         return res.status(400).json(parsedBody);
     }
     try {
         const result = await tableRepository.createTable(parsedBody.capacity);
-        
+        eventBus.emit("table:creation:success", {id: result.insertId, capacity: parsedBody.capacity,  });
         res.json({
             message: "Table created successfully",
             table: {
@@ -95,8 +96,8 @@ router.post("/", async(req, res) => {
                 seats: parsedBody.capacity
             }
         });
-    eventBus.emit("table:creation", {id: result.insertId, capacity: parsedBody.capacity,  });
     } catch (error) {
+        eventBus.emit("table:creation:failed", {StatusCode: 500, error: error.message, capacity: parsedBody.capacity});
         res.status(500).json({ error: error.message });
     }
 })
@@ -137,10 +138,13 @@ router.get("/:id", async(req, res) => {
     try {
         const [table] = await tableRepository.getTable(id);
         if (!table) {
+            eventBus.emit("table:get:failure", {StatusCode: 404, error: "Table not found"});
             return res.status(404).json({ error: "Table not found" });
         }
         res.json(table);
+        eventBus.emit("table:get:success", {tableId: id});
     } catch (error) {
+        eventBus.emit("table:get:failure", {error: error.message});
         res.status(500).json({ error: error.message });
     }
 })
