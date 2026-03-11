@@ -36,11 +36,11 @@ class TableRepository {
             WHERE r.date = ?
             AND r.status != 'cancelled'
             AND r.time BETWEEN ? and ADDTIME(?, '2:00:00')
-            AND r.reservation_id != ?
+            AND r.id != ?
           )`,
         [date, time, time, reservation_id]
       );
-      
+
       return rows;
     }
     

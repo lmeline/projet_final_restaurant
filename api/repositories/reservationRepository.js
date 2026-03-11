@@ -102,13 +102,14 @@ class ReservationRepository {
     const connection = await this.pool.getConnection();
     
     try {
+      await connection.beginTransaction();
       if (assignedTables) {
         
         await connection.query(
           "DELETE FROM reservation_tables WHERE reservation_id = ?",
           [id]
         )
-        
+  
         for (const table of assignedTables) {
           const [result] = await connection.query(
             "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
@@ -117,15 +118,17 @@ class ReservationRepository {
           if (result.affectedRows != 1) throw new Error("Failed to update reservation.");
         }
       }
-      
-      const result = await connection.query(
+
+      const [result] = await connection.query(
         `UPDATE reservations 
-        SET number_of_people = ?, date = ?, time = ?, note = ?
+        SET number_of_people = ?, date = ?, time = ?, comment = ?
         WHERE id = ?`,
         [newReservation.number_of_people, newReservation.date, newReservation.time, newReservation.note, id]
       )
-      
+
       if (result.affectedRows != 1) throw new Error("Failed to update reservation.")
+      
+      await connection.commit();
       
     } catch (error) {
       await connection.rollback();

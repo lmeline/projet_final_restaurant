@@ -61,10 +61,10 @@ router.get("/", adminMiddleware, async (req, res) => {
     try {
       let [reservations] = await reservationRepository.listReservations(parsedParams);
       
-      reservations = reservations.map(reservation => ({
-          ...reservation,
-          tables: reservation.tables_id.split(',').map(Number)
-      }))
+      reservations = reservations.map(({ tables_id, ...rest }) => ({
+          ...rest,
+          tables: tables_id ? tables_id.split(',').map(Number) : []
+      }));
       
       res.json(reservations);
     } catch (error) {
@@ -96,7 +96,7 @@ router.get("/", adminMiddleware, async (req, res) => {
  *         description: Erreur serveur
  */
 router.get("/my-reservations", async (req, res) => {
-    const user_id = req.user.id || req.user.userId;
+    const user_id = req.user.id;
     try {
       let reservations = await reservationRepository.getReservationsForUser(user_id);
       eventBus.emit("reservation:my-reservations:success", {user_id:user_id});
@@ -179,7 +179,7 @@ router.post("/", async (req, res) => {
     }
 
     const { number_of_people, date, time, note } = req.body;
-    const user_id = req.user.id || req.user.userId;
+    const user_id = req.user.id;
 
   try {
 
@@ -215,7 +215,10 @@ router.post("/", async (req, res) => {
 
     res.status(201).json({
       message: "Reservation created successfully",
-      reservation: reservation
+      reservation: {
+        ...data,
+        tables: tables_id ? tables_id.split(',').map(Number) : []
+      }
     });
 
   } catch (error) {
@@ -285,10 +288,10 @@ router.put("/:id", async (req, res) => {
         return res.status(400).json(newReservation);
     }
 
-    const user_id = req.user.id || req.user.userId;
+    const user_id = req.user.id;
 
     try {
-      const currentReservation = await reservationRepository.getReservationById(id);
+      const [currentReservation] = await reservationRepository.getReservationById(id);
 
       if (!currentReservation) {
         eventBus.emit("reservation:modify:failure", {StatusCode: 404, error: "Reservation not found"});
@@ -299,7 +302,7 @@ router.put("/:id", async (req, res) => {
         eventBus.emit("reservation:modify:failure", {StatusCode: 403, error: "Access denied"});
         return res.status(403).json({ error: "Access denied" });
       }
-        
+
       if (currentReservation.status !== "pending") {
         eventBus.emit("reservation:modify:failure", {StatusCode: 400, error: "Only pending reservations can be modified"});
         return res.status(400).json({ error: "Only pending reservations can be modified" });
@@ -315,23 +318,28 @@ router.put("/:id", async (req, res) => {
           eventBus.emit("reservation:modify:failure", {StatusCode: 400, error: "Restaurant is closed at this time."});
           return res.status(400).json({ error: "Restaurant is closed at this time." });
         }
-            
+
         const availableTables = await tableRepository.getAvailableTables(newReservation.date, newReservation.time, id);
+
         if (!availableTables) {
           eventBus.emit("reservation:modify:failure", {StatusCode: 409, error: "Restaurant is full for this time slot."});
           return res.status(409).json({ error: "Restaurant is full for this time slot." });
         }
+
+        assignedTables = assignTables(availableTables, newReservation.number_of_people)
         
-        assignedTables = assignTables(availableTables, number_of_people)
         if (!assignedTables) {
           eventBus.emit("reservation:modify:failure", {StatusCode: 409, error: "No available tables for this number of people."});
           return res.status(409).json({ error: "No available tables for this number of people." });
         }
       }
-        
+
       await reservationRepository.updateReservation(id, newReservation, assignedTables);
-      
+
       const updatedReservation = await reservationRepository.getReservationById(id);
+
+      const {tables_id, ...data} = updatedReservation;
+
       res.json({
           message: "Reservation updated successfully",
           reservation: updatedReservation
@@ -439,7 +447,7 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
  *       500:
  *         description: Erreur serveur
  */
-router.patch ("/:id/validate", adminMiddleware, async (req, res) => {
+router.patch("/:id/validate", adminMiddleware, async (req, res) => {
     const id = req.params.id;
     try {
         const reservation = await reservationRepository.validateReservation(id);
@@ -455,5 +463,27 @@ router.patch ("/:id/validate", adminMiddleware, async (req, res) => {
         }
     }
 });
+
+router.get("/:id", adminMiddleware, async (req, res) => {
+  const id = req.params.id;
+  try {
+
+    const [reservation] = await reservationRepository.getReservationById(id);
+
+    if (!reservation) {
+      res.status(404).json({error : "Reservation not found"})
+    }
+
+    const {tables_id, ...data} = reservation
+
+    res.status(200).json({
+      ...data,
+      tables: tables_id ? tables_id.split(',').map(Number) : []
+    })
+  } catch (_) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+  
+})
 
 module.exports = router;

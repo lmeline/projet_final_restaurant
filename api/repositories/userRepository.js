@@ -9,7 +9,6 @@ class UserRepository {
         return rows;
     }
 
-
     // Method to get a specific user by email
     async getUserByEmail(email) {
         const [row] = await this.pool.query(`
@@ -32,15 +31,6 @@ class UserRepository {
         return id;
     }
 
-
-    async updateUser(id) {
-        throw new Error("Method not implemented.");
-    }
-
-
-    async deleteUser(id) {
-        throw new Error("Method not implemented.");
-    }
 }
 
 module.exports = new UserRepository();

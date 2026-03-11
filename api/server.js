@@ -44,7 +44,7 @@ app.use("/menu", loggerMiddleware, menuRouter);
 app.use("/tables", authMiddleware,loggerMiddleware, adminMiddleware, tableRouter);
 
 // Use of routes defined in /routes/statistiques.js with /statistiques prefix
-app.use("/statistiques", authMiddleware, adminMiddleware, statistiqueRouter);
+app.use("/statistics", authMiddleware, adminMiddleware, statistiqueRouter);
 
 //Base Endpoint
 app.get("/", (req, res) => {
