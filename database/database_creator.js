@@ -60,7 +60,19 @@ const sql_files = fs.readdirSync(path.join(__dirname, "sources"))
 
         console.log(`Admin ${process.env.ADMIN_EMAIL} created !`);
     }
-    
+
+    if (process.env.CLIENT_EMAIL && process.env.CLIENT_PASSWORD) {
+        const PasswordHasher = require("../api/utils/passwordHasher");
+        const hashedPassword = await PasswordHasher.hashPassword(process.env.CLIENT_PASSWORD);
+
+        const [insertedUserId] = await tempConnection.query("INSERT INTO users (email, password_hash, firstname, lastname, role) VALUES (?, ?, 'Client', 'Test', 'client')", [process.env.CLIENT_EMAIL, hashedPassword]);
+
+        const [insertedReservationId] = await tempConnection.query("INSERT INTO reservations (number_of_people, `date`, `time`, `status`, user_id, comment) VALUES (10, '2026-03-13', '12:07:00', 'pending', ?, 'Test reservation')", [insertedUserId.insertId])
+        await tempConnection.query("INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?,1), (?,6);", [insertedReservationId.insertId, insertedReservationId.insertId]);
+
+        console.log(`Client ${process.env.CLIENT_EMAIL} created !`);
+    }
+
     await tempConnection.end();
 })();
 

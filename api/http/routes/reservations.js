@@ -59,10 +59,10 @@ router.get("/", adminMiddleware, async (req, res) => {
     try {
       let [reservations] = await reservationRepository.listReservations(parsedParams);
       
-      reservations = reservations.map(reservation => ({
-          ...reservation,
-          tables: reservation.tables_id.split(',').map(Number)
-      }))
+      reservations = reservations.map(({ tables_id, ...rest }) => ({
+          ...rest,
+          tables: tables_id ? tables_id.split(',').map(Number) : []
+      }));
       
       res.json(reservations);
     } catch (error) {
@@ -94,7 +94,7 @@ router.get("/", adminMiddleware, async (req, res) => {
  *         description: Erreur serveur
  */
 router.get("/my-reservations", async (req, res) => {
-    const user_id = req.user.id || req.user.userId;
+    const user_id = req.user.id;
     try {
       let reservations = await reservationRepository.getReservationsForUser(user_id);
       
@@ -102,10 +102,10 @@ router.get("/my-reservations", async (req, res) => {
         return res.status(404).json({ error: "No reservations found for this user" });
       }
       
-      reservations = reservations.map(reservation => ({
-          ...reservation,
-          tables: reservation.tables_id.split(',').map(Number)
-      }))
+      reservations = reservations.map(({ tables_id, ...rest }) => ({
+          ...rest,
+          tables: tables_id ? tables_id.split(',').map(Number) : []
+      }));
       
       res.json(reservations);
     } catch (error) {
@@ -175,7 +175,7 @@ router.post("/", async (req, res) => {
     }
 
     const { number_of_people, date, time, note } = req.body;
-    const user_id = req.user.id || req.user.userId;
+    const user_id = req.user.id;
 
   try {
 
@@ -197,12 +197,17 @@ router.post("/", async (req, res) => {
     const reservation_id = await reservationRepository.createReservation(user_id, number_of_people, date, time, note, assignedTables);
     const reservation = await reservationRepository.getReservationsForUser(reservation_id.id)
 
+    const { tables_id, ...data } = reservation;
+
     res.status(201).json({
       message: "Reservation created successfully",
-      reservation: reservation
+      reservation: {
+        ...data,
+        tables: tables_id ? tables_id.split(',').map(Number) : []
+      }
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -266,23 +271,23 @@ router.put("/:id", async (req, res) => {
         return res.status(400).json(newReservation);
     }
 
-    const user_id = req.user.id || req.user.userId;
+    const user_id = req.user.id;
 
     try {
-      const currentReservation = await reservationRepository.getReservationById(id);
+      const [currentReservation] = await reservationRepository.getReservationById(id);
 
       if (!currentReservation) {
         return res.status(404).json({ error: "Reservation not found" });
       }
-        
-      if (currentReservation.user_id !== user_id || ) {
+
+      if (currentReservation.user_id !== user_id && req.user.role !== "admin") {
         return res.status(403).json({ error: "Access denied" });
       }
-        
+
       if (currentReservation.status !== "pending") {
         return res.status(400).json({ error: "Only pending reservations can be modified" });
       }
-      console.log("coucou")
+
       let assignedTables = null;
         
       if (currentReservation.date !== newReservation.date
@@ -293,27 +298,35 @@ router.put("/:id", async (req, res) => {
         if (!restaurantIsOpen) {
           return res.status(400).json({ error: "Restaurant is closed at this time." });
         }
-            
+
         const availableTables = await tableRepository.getAvailableTables(newReservation.date, newReservation.time, id);
+
         if (!availableTables) {
           return res.status(409).json({ error: "Restaurant is full for this time slot." });
         }
+
+        assignedTables = assignTables(availableTables, newReservation.number_of_people)
         
-        assignedTables = assignTables(availableTables, number_of_people)
         if (!assignedTables) {
           return res.status(409).json({ error: "No available tables for this number of people." });
         }
       }
-        
+
       await reservationRepository.updateReservation(id, newReservation, assignedTables);
-      
+
       const updatedReservation = await reservationRepository.getReservationById(id);
+
+      const {tables_id, ...data} = updatedReservation;
+
       res.json({
           message: "Reservation updated successfully",
-          reservation: updatedReservation
+          reservation: {
+            ...data,
+            tables: tables_id ? tables_id.split(',').map(Number) : []
+          }
       });
     } catch (_) {
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: "Internal server error"});
     }
 });
 
@@ -363,7 +376,7 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
             res.json({ message: "Reservation cancelled successfully" });
         }
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 
@@ -403,11 +416,19 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
  *       500:
  *         description: Erreur serveur
  */
-router.patch ("/:id/validate", adminMiddleware, async (req, res) => {
+router.patch("/:id/validate", adminMiddleware, async (req, res) => {
     const id = req.params.id;
     try {
-        const reservation = await reservationRepository.validateReservation(id);
-        res.json({ message: "Reservation validated successfully", reservation });
+        const [reservation] = await reservationRepository.validateReservation(id);
+        const {tables_id, ...data} = reservation
+
+        res.json({ 
+          message: "Reservation validated successfully", 
+          reservation : {
+            ...data,
+            tables: tables_id ? tables_id.split(',').map(Number) : []
+          }
+         });
     } catch (error) {
         if (error.message === "Reservation not found") {
             res.status(404).json({ error: error.message });
@@ -416,5 +437,27 @@ router.patch ("/:id/validate", adminMiddleware, async (req, res) => {
         }
     }
 });
+
+router.get("/:id", adminMiddleware, async (req, res) => {
+  const id = req.params.id;
+  try {
+
+    const [reservation] = await reservationRepository.getReservationById(id);
+
+    if (!reservation) {
+      res.status(404).json({error : "Reservation not found"})
+    }
+
+    const {tables_id, ...data} = reservation
+
+    res.status(200).json({
+      ...data,
+      tables: tables_id ? tables_id.split(',').map(Number) : []
+    })
+  } catch (_) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+  
+})
 
 module.exports = router;

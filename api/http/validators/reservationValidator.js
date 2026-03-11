@@ -1,6 +1,6 @@
 const parseFields = require("./utils/requestParser");
 
-// Function to check the validity of the request body for creating a reservation
+/** Function to check the validity of the request body for creating a reservation */
 function validateCreateReservationRequest(body) {
     let parsed = parseFields(body, ["number_of_people", "date", "time", "note"]);
 
@@ -27,7 +27,7 @@ function validateCreateReservationRequest(body) {
     return body;
 }
 
-// Function to check the validity of the request body for updating a reservation
+/** Function to check the validity of the request body for updating a reservation */
 function validateUpdateReservationRequest(body) {
     const allowedFields = ["number_of_people", "date", "time", "note"];
     let parsed = parseFields(body, allowedFields);
@@ -53,6 +53,7 @@ function validateUpdateReservationRequest(body) {
     return body;
 }
 
+/** Check the ListReservations request */
 function validateListReservationsRequest(query) {
     const validStatuses = ['pending', 'confirmed', 'cancelled'];
     const filters = {};

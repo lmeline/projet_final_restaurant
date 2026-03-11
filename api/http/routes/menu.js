@@ -56,7 +56,7 @@ router.get("/", async (req, res) => {
         parsedMenu[item.category] = [];
       }
       parsedMenu[item.category].push(item);
-    });$
+    });
 
     res.json(parsedMenu);
   } catch (error) {

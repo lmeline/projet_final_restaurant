@@ -1,5 +1,4 @@
 function parseFields(body, allowedFields) {
-
     
     const actualFields = Object.keys(body);
 

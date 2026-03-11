@@ -4,6 +4,13 @@ CREATE DATABASE db_name_placeholder;
 
 USE db_name_placeholder;
 
+CREATE TABLE opening_slots (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    date_time DATETIME NOT NULL,
+    duration INT NOT NULL,
+    available TINYINT NOT NULL DEFAULT 1,
+    comment TEXT
+);
 
 CREATE TABLE `users` (
     id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -47,10 +54,3 @@ CREATE TABLE menu_items (
     category ENUM('entree', 'plat', 'dessert') NOT NULL
 );
 
-CREATE TABLE opening_slots (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    date_time DATETIME NOT NULL,
-    duration INT NOT NULL,
-    available TINYINT NOT NULL DEFAULT 1,
-    comment TEXT
-);
