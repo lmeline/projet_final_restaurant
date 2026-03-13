@@ -107,3 +107,37 @@
 [2026-03-13T11:18:58.563Z] | [reservation:modify:success] | reservation:modify:success | reservation_id '20' | numberOfPeople '4' | date '2026-03-14' | time '19:20:00' | 'admin@awesome-restaurant.com' from ip adress [::1]
 [2026-03-13T11:19:37.185Z] | [route:access] | [PUT /reservations/20] | by 'admin@awesome-restaurant.com' from IP [::1]
 [2026-03-13T11:19:37.227Z] | [reservation:modify:success] | reservation:modify:success | reservation_id '20' | numberOfPeople '4' | date '2026-03-14' | time '19:20:00' | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T11:41:12.016Z] | [route:access] | [POST /auth/login] | from IP [::1]
+[2026-03-13T11:41:12.065Z] | auth:attempt | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T11:41:12.065Z] | auth:success | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T11:41:29.600Z] | [route:access] | [GET /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:41:44.316Z] | [route:access] | [GET /reservations/my-reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:41:44.319Z] | [reservation:my-reservations:success] | reservation:my-reservations:success | user_id '11'
+[2026-03-13T11:41:55.128Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:41:55.133Z] | [reservation:create:failure] | reservation:create:failure | StatusCode '400' | error 'Restaurant is closed at this time.'
+[2026-03-13T11:41:59.840Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:41:59.843Z] | [reservation:create:failure] | reservation:create:failure | StatusCode '400' | error 'Restaurant is closed at this time.'
+[2026-03-13T11:42:03.928Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:42:03.960Z] | [reservation:create:success] | reservation:create:success | reservation_id '21' | 'admin@awesome-restaurant.com' from ip adress [::1] | numberOfPeople '4' | date '2026-03-17' | time '19:20:00'
+[2026-03-13T11:42:08.285Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:42:08.295Z] | [reservation:create:failure] | reservation:create:failure | StatusCode '409' | error 'User already have a reservation at this time.'
+[2026-03-13T11:42:13.392Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:42:13.419Z] | [reservation:create:success] | reservation:create:success | reservation_id '22' | 'admin@awesome-restaurant.com' from ip adress [::1] | numberOfPeople '40' | date '2026-03-18' | time '19:20:00'
+[2026-03-13T11:42:24.845Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:42:24.867Z] | [reservation:create:success] | reservation:create:success | reservation_id '23' | 'admin@awesome-restaurant.com' from ip adress [::1] | numberOfPeople '6' | date '2026-03-19' | time '19:20:00'
+[2026-03-13T11:42:51.370Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:42:51.398Z] | [reservation:create:failure] | reservation:create:failure | StatusCode '409' | error 'No available tables for this number of people.'
+[2026-03-13T11:43:20.704Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:43:20.707Z] | [reservation:create:failure] | reservation:create:failure | StatusCode '409' | error 'No available tables for this number of people.'
+[2026-03-13T11:43:23.886Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:43:23.918Z] | [reservation:create:success] | reservation:create:success | reservation_id '24' | 'admin@awesome-restaurant.com' from ip adress [::1] | numberOfPeople '6' | date '2026-03-20' | time '19:20:00'
+[2026-03-13T11:45:05.018Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:45:05.077Z] | [reservation:create:success] | reservation:create:success | reservation_id '25' | 'admin@awesome-restaurant.com' from ip adress [::1] | numberOfPeople '4' | date '2026-03-21' | time '19:20:00'
+[2026-03-13T11:45:38.473Z] | [route:access] | [PUT /reservations/20] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:45:38.502Z] | [reservation:modify:success] | reservation:modify:success | reservation_id '20' | numberOfPeople '4' | date '2026-03-21' | time '19:20:00' | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T11:45:43.497Z] | [route:access] | [GET /reservations/19] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:45:44.617Z] | [route:access] | [GET /reservations/19] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:45:47.598Z] | [route:access] | [GET /reservations/20] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:45:52.776Z] | [route:access] | [GET /reservations/my-reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:45:52.780Z] | [reservation:my-reservations:success] | reservation:my-reservations:success | user_id '11'
+[2026-03-13T11:46:03.853Z] | [route:access] | [GET /statistics] | by 'admin@awesome-restaurant.com' from IP [::1]

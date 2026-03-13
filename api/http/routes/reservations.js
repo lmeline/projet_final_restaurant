@@ -262,7 +262,7 @@ router.post("/", async (req, res) => {
     }
 
     const reservation_id = await reservationRepository.createReservation(user_id, number_of_people, date, time, note, assignedTables);
-    const reservation = await reservationRepository.getReservationById(reservation_id.id)
+    const [reservation] = await reservationRepository.getReservationById(reservation_id.id)
 
     const { tables_id, ...data } = reservation;
     
@@ -445,6 +445,7 @@ router.put("/:id", async (req, res) => {
             tables: tables_id ? tables_id.split(',').map(Number) : []
           }
       });
+
       eventBus.emit("reservation:modify:success", {
         reservationId: id,
         email: req.user.email,
