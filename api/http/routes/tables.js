@@ -180,7 +180,7 @@ router.delete("/:id", async(req, res) => {
         }
 
         const result = await tableRepository.deleteTable(id);
-
+        
         if (result.affectedRows === 0) {
             eventBus.emit("table:delete:failure", {StatusCode: 404,error: "table linked with reservation(s)"});
             return res.status(409).json({error : "Table can't be deleted : some reservations are linked to it..."});
@@ -189,8 +189,8 @@ router.delete("/:id", async(req, res) => {
         eventBus.emit("table:delete:success", {tableId: id});
         res.status(200).json({message : `Table ${id} deleted with success !`});
 
-    } catch {
-        eventBus.emit("table:delete:failure", {StatusCode: 500,error : "Internal Server Error"});
+    } catch (error) {
+        eventBus.emit("table:delete:failure", {StatusCode: 500,error : error.message});
         return res.status(500).json({error: "Internal Server Error"});
     }
 });

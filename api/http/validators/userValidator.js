@@ -4,7 +4,7 @@ const parseFields = require("./utils/requestParser");
 function validateCreateUserRequest(body) {
 
     let parsed = parseFields(body, ["firstname", "lastname", "email", "phone", "password"]);
-
+    
     if (parsed.error) {
         return parsed;
     }
@@ -35,6 +35,7 @@ function validateCreateUserRequest(body) {
     if (!validatePhone(phone)) {
         return { error: "Field `phone` is not valid" }
     }
+    
 
     return body;
 }

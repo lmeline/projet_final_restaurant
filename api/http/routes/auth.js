@@ -50,7 +50,6 @@ const { generateToken } = require("../../utils/jwtTokenManager");
  */
 router.post("/signup", async (req, res) => {
     let validationResult = validateCreateUserRequest(req.body);
-
     if (validationResult.error) {
         res.status(400).json(validationResult);
         return

@@ -242,7 +242,6 @@ router.post("/", async (req, res) => {
     const user_id = req.user.id;
 
   try {
-
     const restaurantIsOpen = await reservationRepository.checkOpenSlotAvailability(date, time);
     if (!restaurantIsOpen) {
       eventBus.emit("reservation:create:failure", {StatusCode: 400, error: "Restaurant is closed at this time."});
@@ -380,7 +379,6 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
     const { id } = req.params; 
     const newReservation = validateUpdateReservationRequest(req.body);
-    
     if (newReservation.error) {
         eventBus.emit("reservation:modify:failure", {StatusCode: 400, error: newReservation.error});
         return res.status(400).json(newReservation);
@@ -456,7 +454,7 @@ router.put("/:id", async (req, res) => {
       })
     } catch (_) {
       const status = error.status || 500;
-      eventBus.emit("reservation:failure", {StatusCode: status, error: "Internal server error"});
+      eventBus.emit("reservation:failure", {StatusCode: status, error: error.message});
       res.status(status).json({ error: "Internal server error" });
     }
 });

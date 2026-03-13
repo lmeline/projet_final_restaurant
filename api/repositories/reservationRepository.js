@@ -159,19 +159,26 @@ class ReservationRepository {
 
   // Method to validate a reservation by ID
   async validateReservation(id) {
-    const [reservation] = await this.pool.query(
+    let [reservation] = await this.pool.query(
       "SELECT * FROM reservations WHERE id = ?",
       [id],
     );
+
     if (reservation.length === 0) {
       let err = new Error("Reservation does not exist.");
       err.status = 404
       throw err;
     }
-    await this.pool.query(
+
+    const [result] = await this.pool.query(
       "UPDATE reservations SET status = 'confirmed' WHERE id = ?",
       [id],
     );
+
+    if (result.affectedRows === 1) {
+      reservation[0].status = "confirmed";
+    }
+  
     return reservation;
   }
   
@@ -199,11 +206,7 @@ class ReservationRepository {
       GROUP BY r.id`,
       [id],
     );
-    if (reservation.length === 0) {
-      let err = new Error("Reservation does not exist.");
-          err.status = 404
-          throw err;
-    }
+
     return reservation;
   }
   

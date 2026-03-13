@@ -96,7 +96,7 @@ eventBus.on('table:get:failure', ({StatusCode, error}) => {
 
 // Routes suppression table par id
 eventBus.on('table:delete:success', ({tableId}) => {
-    writeLog(`[table:delete:success] | table:delete:success | id '${id}'`)
+    writeLog(`[table:delete:success] | table:delete:success | id '${tableId}'`)
 });
 eventBus.on('table:delete:failure', ({StatusCode, error}) => {
     writeLog(`[table:delete:failure] | table:delete:failure | StatusCode '${StatusCode}' | error '${error}'`)
