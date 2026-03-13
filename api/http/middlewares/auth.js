@@ -12,7 +12,7 @@ function authMiddleware(req, res, next) {
     try {
         const payload = verifyToken(token);
         req.user = {
-            id: payload.id, 
+            id: payload.userId, 
             role: payload.role, 
             email: payload.email 
         };

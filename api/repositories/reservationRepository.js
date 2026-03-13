@@ -59,16 +59,25 @@ class ReservationRepository {
     
     try {
         await connection.beginTransaction();
-
         // 1. Vérifications de base 
         const [users] = await connection.query("SELECT id FROM users WHERE id = ?", [user_id]);
-        if (users.length === 0) throw new Error("User does not exist.");
+
+        if (users.length === 0) {
+          let err = new Error("User does not exist.");
+          err.status = 404
+          throw err;
+        }
+        
 
         const [existing] = await connection.query(
             "SELECT id FROM reservations WHERE user_id = ? AND date = ? AND time = ? AND status != 'cancelled'",
             [user_id, date, time]
         );
-        if (existing.length > 0) throw new Error("User already have a reservation at this time.");
+        if (existing.length > 0) {
+          let err = new Error("User already have a reservation at this time.");
+          err.status = 409;
+          throw err;
+        }
 
         // Insérer la réservation
         const [resRow] = await connection.query(
@@ -155,7 +164,9 @@ class ReservationRepository {
       [id],
     );
     if (reservation.length === 0) {
-      throw new Error("Reservation not found");
+      let err = new Error("Reservation does not exist.");
+      err.status = 404
+      throw err;
     }
     await this.pool.query(
       "UPDATE reservations SET status = 'confirmed' WHERE id = ?",
@@ -189,7 +200,9 @@ class ReservationRepository {
       [id],
     );
     if (reservation.length === 0) {
-      throw new Error("Reservation not found");
+      let err = new Error("Reservation does not exist.");
+          err.status = 404
+          throw err;
     }
     return reservation;
   }

@@ -47,14 +47,14 @@ class TableRepository {
     async deleteTable(id) {
       try {
         const [result] = await this.pool.query(`
-          DELETE t FROM tables t
-          LEFT JOIN reservation_tables rt ON t.id = rt.table_id
-          LEFT JOIN reservations r ON rt.reservation_id = r.id
-          WHERE t.id = ? 
-          AND (
-              r.id IS NULL
-              OR 
-              CONCAT(r.date, ' ', r.time) < NOW()
+          DELETE FROM tables
+          WHERE id = ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM reservation_tables rt
+            JOIN reservations r ON r.id = rt.reservation_id
+            WHERE rt.table_id = tables.id
+            AND CONCAT(r.date, ' ', r.time) >= NOW()
           );
         `,[id]
         );
