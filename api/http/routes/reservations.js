@@ -99,9 +99,10 @@ router.get("/my-reservations", async (req, res) => {
     const user_id = req.user.id || req.user.userId;
     try {
       let reservations = await reservationRepository.getReservationsForUser(user_id);
-      
+      eventBus.emit("reservation:my-reservations:success", {user_id:user_id});
+
       if (reservations.length === 0) {
-        eventBus.emit("reservation:failure", {StatusCode: 404, error: "No reservations found for this user"});
+        eventBus.emit("reservation:my-reservations:failure", {StatusCode: 404, error: "No reservations found for this user"});
         return res.status(404).json({ error: "No reservations found for this user" });
       }
       reservations = reservations.map(reservation => ({
@@ -110,7 +111,7 @@ router.get("/my-reservations", async (req, res) => {
       }))
       res.json(reservations);
     } catch (error) {
-        eventBus.emit("reservation:failure", {StatusCode: 500, error: error.message});
+        eventBus.emit("reservation:my-reservations:failure", {StatusCode: 500, error: error.message});
         res.status(500).json({ error: error.message });
     }
 });
@@ -443,7 +444,7 @@ router.patch ("/:id/validate", adminMiddleware, async (req, res) => {
     try {
         const reservation = await reservationRepository.validateReservation(id);
         res.json({ message: "Reservation validated successfully", reservation });
-        eventBus.emit("reservation:validate:validated", { reservationId: id });
+        eventBus.emit("reservation:validate:success", { reservationId: id });
     } catch (error) {
         if (error.message === "Reservation not found") {
             eventBus.emit("reservation:validate:failure", {StatusCode: 404, error: error.message });
