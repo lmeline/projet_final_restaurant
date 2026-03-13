@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const tableRepository = require("../../repositories/tableRepository");
 const { checkTablesAvailability, validateCreateTableRequest } = require("../validators/tableValidator");
+const e = require("express");
 
 /**
  * @swagger
@@ -30,8 +31,9 @@ router.get("/", async (req, res) => {
     try {
         const [tables] = await tableRepository.listTables();
         res.json(tables);
-
+        eventBus.emit("table:getAll:success", {tables});
     } catch (error) {
+        eventBus.emit("table:getAll:failure", {StatusCode: 500, error: error.message});
         res.status(500).json({ error: error.message });
     }
 });
@@ -80,6 +82,7 @@ router.post("/", async(req, res) => {
     const parsedBody = validateCreateTableRequest(req.body);
 
     if (parsedBody.error) {
+        eventBus.emit("table:creation:failed", {StatusCode: 400, error: parsedBody.message, capacity: parsedBody?.capacity});
         return res.status(400).json(parsedBody);
     }
 
@@ -93,7 +96,9 @@ router.post("/", async(req, res) => {
                 seats: parsedBody.capacity
             }
         });
+        eventBus.emit("table:creation:success", {id: result.insertId, capacity: parsedBody.capacity,  });
     } catch (error) {
+        eventBus.emit("table:creation:failed", {StatusCode: 500, error: error.message, capacity: parsedBody.capacity});
         res.status(500).json({ error: error.message });
     }
 })
@@ -134,10 +139,12 @@ router.get("/:id", async(req, res) => {
     try {
         const [table] = await tableRepository.getTable(id);
         if (!table) {
+            eventBus.emit("table:getId:failure", {StatusCode: 404, error: "Table not found"});
             return res.status(404).json({ error: "Table not found" });
         }
         res.json(table);
     } catch (error) {
+        eventBus.emit("table:getId:failure", {error: error.message});
         res.status(500).json({ error: error.message });
     }
 })

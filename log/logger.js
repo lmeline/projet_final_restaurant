@@ -88,9 +88,17 @@ eventBus.on('table:creation:failed', ({StatusCode, error,capacity}) => {
 });
 
 // Routes recupération table par id
-eventBus.on('table:get:success', ({tableId}) => {
-    writeLog(`[table:get:success] | table:get:success | table_id '${tableId}'`)
+eventBus.on('table:getId:success', ({tableId}) => {
+    writeLog(`[table:getId:success] | table_id '${tableId}'`)
 });
-eventBus.on('table:get:failure', ({StatusCode, error}) => {
-    writeLog(`[table:get:failure] | table:get:failure | StatusCode '${StatusCode}' | error '${error}'`)
+eventBus.on('table:getId:failure', ({StatusCode, error}) => {
+    writeLog(`[table:getId:failure] | StatusCode '${StatusCode}' | error '${error}'`)
+});
+
+// Routes récupérer la liste de toutes les tables
+eventBus.on('table:getAll:success', ({tables}) => {
+    writeLog(`[table:getAll:success] | tables '${tables}'`)
+});
+eventBus.on('table:getAll:failure', ({StatusCode, error}) => {
+    writeLog(`[table:getAll:failure] | StatusCode '${StatusCode}' | error '${error}'`)
 });
