@@ -1,4 +1,5 @@
 const express = require("express");
+const eventBus = require("../../../eventBus");
 const router = express.Router();
 const userRepository = require("../../repositories/userRepository");
 const PasswordHasher = require("../../utils/passwordHasher");
@@ -138,6 +139,8 @@ router.post("/login", async (req, res) => {
     }
     const {email, password} = validationResult;
 
+    
+
     try {
         const [user] = await userRepository.getUserByEmail(email);
         if (!user) {
@@ -145,12 +148,17 @@ router.post("/login", async (req, res) => {
             return;
         }
 
+        eventBus.emit("auth:attempt", {email: email, ip: req.ip});
+
         if (!PasswordHasher.comparePassword(password, user.password_hash)) {
+            eventBus.emit("auth:failure", {email: email, ip: req.ip});
             res.status(401).json({ error: "Invalid credentials" });
         } 
 
+        eventBus.emit("auth:success", {email: email, ip: req.ip});
+
         res.status(200).json({
-            token: generateToken(user.id, user.role)
+            token: generateToken(user.id, user.role, user.email)
         });
 
     } catch (error) {

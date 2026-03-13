@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('../log/logger');
 const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 const swaggerOptions = require("./doc/swaggerOptions");
@@ -16,9 +17,7 @@ const tableRouter = require("./http/routes/tables");
 const statistiqueRouter = require("./http/routes/statistiques");
 const authMiddleware = require("./http/middlewares/auth");
 const adminMiddleware = require("./http/middlewares/admin");
-
-const { getRequiredTableSizes } = require("./utils/tableAssigner");
-const { checkTablesAvailability } = require("./http/validators/tableValidator");
+const loggerMiddleware = require("./http/middlewares/log");
 
 // Check the presence of the JWT_SECRET_KEY
 if (!process.env.JWT_SECRET_KEY) {
@@ -26,23 +25,23 @@ if (!process.env.JWT_SECRET_KEY) {
   process.exit(1);
 }
 
-app.use("/auth", authRouter);
+app.use("/auth", loggerMiddleware, authRouter);
 
 // Example of using middlewares, here Auth middleware check if the token is present THEN admin middleware check if the user is admin
-app.use("/users", authMiddleware, adminMiddleware,  userRouter);
+app.use("/users", authMiddleware, loggerMiddleware, adminMiddleware, userRouter);
 
 
 // Use of routes defined in /routes/reservations.js with /reservations prefix
-app.use("/reservations", authMiddleware, reservationRouter);
+app.use("/reservations", authMiddleware, loggerMiddleware, reservationRouter);
 
 // Use of routes defined in /routes/menu.js with /menu prefix
-app.use("/menu", menuRouter);
+app.use("/menu", loggerMiddleware, menuRouter);
 
 // Use of routes defined in /routes/tables.js with /tables prefix
-app.use("/tables", authMiddleware, adminMiddleware, tableRouter);
+app.use("/tables", authMiddleware,loggerMiddleware, adminMiddleware, tableRouter);
 
 // Use of routes defined in /routes/statistiques.js with /statistiques prefix
-app.use("/statistics", authMiddleware, adminMiddleware, statistiqueRouter);
+app.use("/statistics", authMiddleware, loggerMiddleware, adminMiddleware, statistiqueRouter);
 
 //Base Endpoint
 app.get("/", (req, res) => {
