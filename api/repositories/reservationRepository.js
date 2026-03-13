@@ -9,8 +9,8 @@ class ReservationRepository {
       r.*,
       group_concat(DISTINCT t.id) as tables_id
     FROM reservations r
-    JOIN reservation_tables rt ON rt.reservation_id = r.id
-    JOIN \`tables\` t ON rt.table_id = t.id`;
+    LEFT JOIN reservation_tables rt ON rt.reservation_id = r.id
+    LEFT JOIN \`tables\` t ON rt.table_id = t.id`;
     let filters = [];
     let filtersValues = [];
 
@@ -43,8 +43,8 @@ class ReservationRepository {
         r.*,
         group_concat(DISTINCT t.id) as tables_id
       FROM reservations r
-      JOIN reservation_tables rt ON rt.reservation_id = r.id
-      JOIN \`tables\` t ON rt.table_id = t.id
+      LEFT JOIN reservation_tables rt ON rt.reservation_id = r.id
+      LEFT JOIN \`tables\` t ON rt.table_id = t.id
       WHERE r.user_id = ?
       GROUP BY r.id`,
       [user_id],
@@ -182,8 +182,8 @@ class ReservationRepository {
         r.*,
         group_concat(DISTINCT t.id) as tables_id
       FROM reservations r
-      JOIN reservation_tables rt ON rt.reservation_id = r.id
-      JOIN \`tables\` t ON rt.table_id = t.id
+      LEFT JOIN reservation_tables rt ON rt.reservation_id = r.id
+      LEFT JOIN \`tables\` t ON rt.table_id = t.id
       WHERE r.id = ?
       GROUP BY r.id`,
       [id],

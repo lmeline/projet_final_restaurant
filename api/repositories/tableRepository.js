@@ -43,6 +43,27 @@ class TableRepository {
 
       return rows;
     }
+
+    async deleteTable(id) {
+      try {
+        const [result] = await this.pool.query(`
+          DELETE t FROM tables t
+          LEFT JOIN reservation_tables rt ON t.id = rt.table_id
+          LEFT JOIN reservations r ON rt.reservation_id = r.id
+          WHERE t.id = ? 
+          AND (
+              r.id IS NULL
+              OR 
+              CONCAT(r.date, ' ', r.time) < NOW()
+          );
+        `,[id]
+        );
+
+        return result;
+      } catch (error) {
+        throw error;
+      }
+    }
     
 }
 

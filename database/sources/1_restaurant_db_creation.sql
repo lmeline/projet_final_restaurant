@@ -42,8 +42,8 @@ CREATE TABLE reservation_tables (
     reservation_id BIGINT UNSIGNED NOT NULL,
     table_id BIGINT UNSIGNED NOT NULL,
     PRIMARY KEY (reservation_id, table_id),
-    FOREIGN KEY (reservation_id) REFERENCES reservations(id),
-    FOREIGN KEY (table_id) REFERENCES `tables`(id)
+    FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE,
+    FOREIGN KEY (table_id) REFERENCES `tables`(id) ON DELETE CASCADE
 );
 
 CREATE TABLE menu_items (
