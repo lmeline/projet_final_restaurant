@@ -20,8 +20,23 @@ const userRepository = require("../../repositories/userRepository");
  *                 properties:
  *                   id:
  *                     type: integer
+ *                     example: 3
+ *                   firstname:
+ *                     type: string
+ *                     example: Thomas
+ *                   lastname:
+ *                     type: string
+ *                     example: Bernard
+ *                   phone:
+ *                     type: string
+ *                     example: "0622334455"
  *                   email:
  *                     type: string
+ *                     format: email
+ *                     example: thomas.bernard@email.com
+ *                   role:
+ *                     type: string
+ *                     example: client
  *       500:
  *         description: Erreur serveur
  */
