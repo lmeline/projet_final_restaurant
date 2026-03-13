@@ -93,3 +93,18 @@ eventBus.on('table:get:success', ({tableId}) => {
 eventBus.on('table:get:failure', ({StatusCode, error}) => {
     writeLog(`[table:get:failure] | table:get:failure | StatusCode '${StatusCode}' | error '${error}'`)
 });
+
+// Routes suppression table par id
+eventBus.on('table:delete:success', ({tableId}) => {
+    writeLog(`[table:delete:success] | table:delete:success | id '${id}'`)
+});
+eventBus.on('table:delete:failure', ({StatusCode, error}) => {
+    writeLog(`[table:delete:failure] | table:delete:failure | StatusCode '${StatusCode}' | error '${error}'`)
+});
+
+eventBus.on('statistique:success', () => {
+    writeLog(`[statistique:success] | statistique:success |`)
+});
+eventBus.on('statistique:failure', ({StatusCode, error}) => {
+    writeLog(`[statistique:failure] | statistique:failure | StatusCode '${StatusCode}' | error '${error}'`)
+});

@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const StatRepository = require("../../repositories/statRepository");
 const pool = require("../../repositories/config/db");
+const eventBus = require("../../../eventBus");
+const e = require("express");
 const statRepository = new StatRepository(pool);
 
 /**
@@ -74,7 +76,9 @@ router.get("/", async (req, res) => {
             details: dailyStats,
             peakHours: peakHours,
         });
+        eventBus.emit("statistics:success");
     } catch (error) {
+        eventBus.emit("statistics:failure", {StatusCode: 500, error: error.message });
         res.status(500).json({ error: error.message });
     }
 });

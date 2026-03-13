@@ -175,22 +175,22 @@ router.delete("/:id", async(req, res) => {
     try {
         const [table] = await tableRepository.getTable(id);
         if (!table) {
-            eventBus.emit("table:get:failure", {StatusCode: 404, error: "Table not found"});
+            eventBus.emit("table:delete:failure", {StatusCode: 404, error: "Table not found"});
             return res.status(404).json({ error: "Table not found" });
         }
 
         const result = await tableRepository.deleteTable(id);
 
         if (result.affectedRows === 0) {
-            eventBus.emit("table:delete:failure", {error: "table linked with reservation(s)"});
+            eventBus.emit("table:delete:failure", {StatusCode: 404,error: "table linked with reservation(s)"});
             return res.status(409).json({error : "Table can't be deleted : some reservations are linked to it..."});
         }
 
-        eventBus.emit("table:delete:success", {id: id});
+        eventBus.emit("table:delete:success", {tableId: id});
         res.status(200).json({message : `Table ${id} deleted with success !`});
 
     } catch {
-        eventBus.emit("table:delete:failure", {error : "Internal Server Error"});
+        eventBus.emit("table:delete:failure", {StatusCode: 500,error : "Internal Server Error"});
         return res.status(500).json({error: "Internal Server Error"});
     }
 });
