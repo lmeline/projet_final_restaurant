@@ -1,9 +1,15 @@
-[2026-03-11T09:52:30.723Z] | auth:attempt | 'lolo@lol.com' from ip adress [::1]
-[2026-03-11T09:52:30.726Z] | auth:success | 'lolo@lol.com' from ip adress [::1]
-[2026-03-11T09:52:37.603Z] | [route:access] | [PATCH /reservations] | from IP [::1]
-[2026-03-11T09:53:20.922Z] | auth:attempt | 'lolo@lol.com' from ip adress [::1]
-[2026-03-11T09:53:20.924Z] | auth:success | 'lolo@lol.com' from ip adress [::1]
-[2026-03-11T09:53:25.061Z] | [route:access] | [PATCH /reservations] | from IP [::1]
-[2026-03-11T09:53:25.074Z] | [reservation:validate:success] | reservation:validate:success | reservation_id '3'
-[2026-03-11T11:31:41.734Z] | auth:attempt | 'lolo@lol.com' from ip adress [::1]
-[2026-03-11T11:31:41.736Z] | auth:success | 'lolo@lol.com' from ip adress [::1]
+[2026-03-13T08:41:35.342Z] | [route:access] | [GET /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T08:41:40.511Z] | auth:attempt | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T08:41:40.511Z] | auth:success | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T08:41:43.035Z] | [route:access] | [GET /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T08:42:52.224Z] | [route:access] | [GET /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T08:42:55.397Z] | [route:access] | [GET /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T08:42:55.404Z] | [reservation:my-reservations:failure] | reservation:my-reservations:failure | StatusCode '404' | error 'No reservations found for this user'
+[2026-03-13T08:42:55.404Z] | [reservation:my-reservations:success] | reservation:my-reservations:success | user_id 'undefined'
+[2026-03-13T08:43:09.690Z] | [route:access] | [GET /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T08:43:19.033Z] | [route:access] | [GET /menu] | from IP [::1]
+[2026-03-13T08:43:23.847Z] | [route:access] | [GET /statistics] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T08:43:30.387Z] | [route:access] | [GET /tables] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T08:43:34.129Z] | [route:access] | [GET /tables] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T08:43:34.132Z] | [table:get:success] | table:get:success | table_id '1'
+[2026-03-13T08:43:51.258Z] | [route:access] | [GET /users] | by 'admin@awesome-restaurant.com' from IP [::1]

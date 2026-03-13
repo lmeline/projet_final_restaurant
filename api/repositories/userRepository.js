@@ -12,7 +12,7 @@ class UserRepository {
     // Method to get a specific user by email
     async getUserByEmail(email) {
         const [row] = await this.pool.query(`
-            SELECT id, firstname, lastname, phone, email, role 
+            SELECT *
             FROM users 
             WHERE email = ?`, 
             [email]
