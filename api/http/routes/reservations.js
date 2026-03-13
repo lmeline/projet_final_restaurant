@@ -434,7 +434,7 @@ router.put("/:id", async (req, res) => {
 
       await reservationRepository.updateReservation(id, newReservation, assignedTables);
 
-      const updatedReservation = await reservationRepository.getReservationById(id);
+      const [updatedReservation] = await reservationRepository.getReservationById(id);
 
       const {tables_id, ...data} = updatedReservation;
 

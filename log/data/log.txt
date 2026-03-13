@@ -100,3 +100,10 @@
 [2026-03-13T11:13:20.459Z] | [route:access] | [DELETE /tables/4] | by 'admin@awesome-restaurant.com' from IP [::1]
 [2026-03-13T11:13:42.445Z] | [route:access] | [POST /reservations] | by 'admin@awesome-restaurant.com' from IP [::1]
 [2026-03-13T11:13:42.456Z] | [reservation:create:failure] | reservation:create:failure | StatusCode '409' | error 'User already have a reservation at this time.'
+[2026-03-13T11:18:52.781Z] | [route:access] | [POST /auth/login] | from IP [::1]
+[2026-03-13T11:18:52.800Z] | auth:attempt | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T11:18:52.800Z] | auth:success | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T11:18:58.523Z] | [route:access] | [PUT /reservations/20] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:18:58.563Z] | [reservation:modify:success] | reservation:modify:success | reservation_id '20' | numberOfPeople '4' | date '2026-03-14' | time '19:20:00' | 'admin@awesome-restaurant.com' from ip adress [::1]
+[2026-03-13T11:19:37.185Z] | [route:access] | [PUT /reservations/20] | by 'admin@awesome-restaurant.com' from IP [::1]
+[2026-03-13T11:19:37.227Z] | [reservation:modify:success] | reservation:modify:success | reservation_id '20' | numberOfPeople '4' | date '2026-03-14' | time '19:20:00' | 'admin@awesome-restaurant.com' from ip adress [::1]
