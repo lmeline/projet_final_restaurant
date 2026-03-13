@@ -454,7 +454,7 @@ router.put("/:id", async (req, res) => {
       })
     } catch (_) {
       const status = error.status || 500;
-      eventBus.emit("reservation:failure", {StatusCode: status, error: error.message});
+      eventBus.emit("reservation:modify:failure", {StatusCode: status, error: error.message});
       res.status(status).json({ error: "Internal server error" });
     }
 });
