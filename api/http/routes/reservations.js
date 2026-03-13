@@ -155,8 +155,9 @@ router.get("/my-reservations", async (req, res) => {
     const user_id = req.user.id;
     try {
       let reservations = await reservationRepository.getReservationsForUser(user_id);
-      
+      eventBus.emit("reservation:my-reservations:success", {user_id:user_id});
       if (reservations.length === 0) {
+        eventBus.emit("reservation:my-reservations:failure", {StatusCode: 404, error: "No reservations found for this user"});
         return res.status(404).json({ error: "No reservations found for this user" });
       }
       
@@ -167,6 +168,7 @@ router.get("/my-reservations", async (req, res) => {
       
       res.json(reservations);
     } catch (error) {
+        eventBus.emit("reservation:my-reservations:failure", {StatusCode: 500, error: error.message});
         res.status(500).json({ error: error.message });
     }
 });
@@ -239,16 +241,19 @@ router.post("/", async (req, res) => {
 
     const restaurantIsOpen = await reservationRepository.checkOpenSlotAvailability(date, time);
     if (!restaurantIsOpen) {
+      eventBus.emit("reservation:creation:failure", {StatusCode: 400, error: "Restaurant is closed at this time."});
       return res.status(400).json({ error: "Restaurant is closed at this time." });
     }
       
     const availableTables = await tableRepository.getAvailableTables(date, time);
     if (!availableTables) {
+      eventBus.emit("reservation:creation:failure", {StatusCode: 409, error: "Restaurant is full for this time slot."});
       return res.status(409).json({ error: "Restaurant is full for this time slot." });
     }
       
     const assignedTables = assignTables(availableTables, number_of_people);
     if (!assignedTables) {
+      eventBus.emit("reservation:create:failure", {StatusCode: 409, error: "No available tables for this number of people."});
       return res.status(409).json({ error: "No available tables for this number of people." });
     }
     
@@ -257,6 +262,14 @@ router.post("/", async (req, res) => {
 
     const { tables_id, ...data } = reservation;
 
+     eventBus.emit("reservation:create:success", {
+      reservationId: reservation_id.id,
+      email: req.user.email,
+      date,
+      time,
+      numberOfPeople: number_of_people,
+      ip: req.ip
+    });
     res.status(201).json({
       message: "Reservation created successfully",
       reservation: {
@@ -265,6 +278,7 @@ router.post("/", async (req, res) => {
       }
     });
   } catch (error) {
+    eventBus.emit("reservation:create:failure", {StatusCode: 500, error: error.message});
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -361,6 +375,7 @@ router.put("/:id", async (req, res) => {
     const newReservation = validateUpdateReservationRequest(req.body);
     
     if (newReservation.error) {
+        eventBus.emit("reservation:modify:failure", {StatusCode: 400, error: newReservation.error});
         return res.status(400).json(newReservation);
     }
 
@@ -370,14 +385,17 @@ router.put("/:id", async (req, res) => {
       const [currentReservation] = await reservationRepository.getReservationById(id);
 
       if (!currentReservation) {
+        eventBus.emit("reservation:modify:failure", {StatusCode: 404, error: "Reservation not found"});
         return res.status(404).json({ error: "Reservation not found" });
       }
 
       if (currentReservation.user_id !== user_id && req.user.role !== "admin") {
+        eventBus.emit("reservation:modify:failure", {StatusCode: 403, error: "Access denied"});
         return res.status(403).json({ error: "Access denied" });
       }
 
       if (currentReservation.status !== "pending") {
+        eventBus.emit("reservation:modify:failure", {StatusCode: 400, error: "Only pending reservations can be modified"});
         return res.status(400).json({ error: "Only pending reservations can be modified" });
       }
 
@@ -389,18 +407,21 @@ router.put("/:id", async (req, res) => {
       ) {
         const restaurantIsOpen = await reservationRepository.checkOpenSlotAvailability(newReservation.date, newReservation.time);
         if (!restaurantIsOpen) {
+          eventBus.emit("reservation:modify:failure", {StatusCode: 400, error: "Restaurant is closed at this time."});
           return res.status(400).json({ error: "Restaurant is closed at this time." });
         }
 
         const availableTables = await tableRepository.getAvailableTables(newReservation.date, newReservation.time, id);
 
         if (!availableTables) {
+          eventBus.emit("reservation:modify:failure", {StatusCode: 409, error: "Restaurant is full for this time slot."});
           return res.status(409).json({ error: "Restaurant is full for this time slot." });
         }
 
         assignedTables = assignTables(availableTables, newReservation.number_of_people)
         
         if (!assignedTables) {
+          eventBus.emit("reservation:modify:failure", {StatusCode: 409, error: "No available tables for this number of people."});
           return res.status(409).json({ error: "No available tables for this number of people." });
         }
       }
@@ -410,7 +431,7 @@ router.put("/:id", async (req, res) => {
       const updatedReservation = await reservationRepository.getReservationById(id);
 
       const {tables_id, ...data} = updatedReservation;
-
+      
       res.json({
           message: "Reservation updated successfully",
           reservation: {
@@ -418,7 +439,16 @@ router.put("/:id", async (req, res) => {
             tables: tables_id ? tables_id.split(',').map(Number) : []
           }
       });
+      eventBus.emit("reservation:modify:success", {
+          reservationId: id,
+          email: req.user.email,
+          date: newReservation.date,
+          time: newReservation.time,
+          numberOfPeople: newReservation.number_of_people,
+          ip: req.ip
+      })
     } catch (_) {
+      eventBus.emit("reservation:failure", {StatusCode: 500, error: "Internal server error"});
       res.status(500).json({ error: "Internal server error"});
     }
 });
@@ -464,11 +494,14 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
     try {
         const result = await reservationRepository.deleteReservation(id);
         if (result.affectedRows === 0) {
+            eventBus.emit("reservation:cancel:failed", { reservation_id: id });
             res.status(404).json({ error: "Reservation not found" });
         } else {
+            eventBus.emit("reservation:cancel:success", { reservationId: id });
             res.json({ message: "Reservation cancelled successfully" });
         }
     } catch (error) {
+        eventBus.emit("reservation:cancel:failed", {StatusCode: 500, error: error.message });
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -543,7 +576,7 @@ router.patch("/:id/validate", adminMiddleware, async (req, res) => {
     try {
         const [reservation] = await reservationRepository.validateReservation(id);
         const {tables_id, ...data} = reservation
-
+        eventBus.emit("reservation:validate:success", { reservationId: id });
         res.json({ 
           message: "Reservation validated successfully", 
           reservation : {
@@ -553,8 +586,10 @@ router.patch("/:id/validate", adminMiddleware, async (req, res) => {
          });
     } catch (error) {
         if (error.message === "Reservation not found") {
+            eventBus.emit("reservation:validate:failure", {StatusCode: 404, error: error.message });
             res.status(404).json({ error: error.message });
         } else {
+            eventBus.emit("reservation:validate:failure", {StatusCode: 500, error: error.message });
             res.status(500).json({ error: error.message });
         }
     }
