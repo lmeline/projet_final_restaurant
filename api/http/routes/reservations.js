@@ -38,6 +38,35 @@ const assignTables = require("../../utils/tableAssigner");
  *               type: array
  *               items:
  *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 18
+ *                   number_of_people:
+ *                     type: integer
+ *                     example: 10
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2026-03-12T23:00:00.000Z"
+ *                   time:
+ *                     type: string
+ *                     example: "12:07:00"
+ *                   status:
+ *                     type: string
+ *                     enum: [pending, confirmed, cancelled]
+ *                     example: confirmed
+ *                   comment:
+ *                     type: string
+ *                     example: Test reservation
+ *                   user_id:
+ *                     type: integer
+ *                     example: 12
+ *                   tables:
+ *                     type: array
+ *                     items:
+ *                       type: integer
+ *                     example: [1, 6]
  *       400:
  *         description: Paramètres de requête invalides
  *       401:
@@ -81,13 +110,42 @@ router.get("/", adminMiddleware, async (req, res) => {
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Liste des réservations de l'utilisateur connecté
+ *         description: Liste des réservations récupérée
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 18
+ *                   number_of_people:
+ *                     type: integer
+ *                     example: 10
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2026-03-12T23:00:00.000Z"
+ *                   time:
+ *                     type: string
+ *                     example: "12:07:00"
+ *                   status:
+ *                     type: string
+ *                     enum: [pending, confirmed, cancelled]
+ *                     example: confirmed
+ *                   comment:
+ *                     type: string
+ *                     example: Test reservation
+ *                   user_id:
+ *                     type: integer
+ *                     example: 12
+ *                   tables:
+ *                     type: array
+ *                     items:
+ *                       type: integer
+ *                     example: [1, 6]
  *       404:
  *         description: Aucune réservation trouvée pour cet utilisateur
  *       500:
@@ -225,7 +283,7 @@ router.post("/", async (req, res) => {
  *         required: true
  *         description: L'identifiant de la réservation à modifier
  *         schema:
- *           type: string
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -235,13 +293,17 @@ router.post("/", async (req, res) => {
  *             properties:
  *               number_of_people:
  *                 type: integer
+ *                 example: 4
  *               date:
  *                 type: string
  *                 format: date
+ *                 example: "2026-03-15"
  *               time:
  *                 type: string
- *               note:
+ *                 example: "19:30:00"
+ *               comment:
  *                 type: string
+ *                 example: "Anniversaire"
  *     responses:
  *       200:
  *         description: Réservation mise à jour avec succès
@@ -252,14 +314,45 @@ router.post("/", async (req, res) => {
  *               properties:
  *                 message:
  *                   type: string
- *                 affectedRows:
- *                   type: integer
+ *                   example: Reservation updated successfully
+ *                 reservation:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 18
+ *                     number_of_people:
+ *                       type: integer
+ *                       example: 4
+ *                     date:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-03-15T00:00:00.000Z"
+ *                     time:
+ *                       type: string
+ *                       example: "19:30:00"
+ *                     status:
+ *                       type: string
+ *                       example: pending
+ *                     comment:
+ *                       type: string
+ *                       example: Anniversaire
+ *                     user_id:
+ *                       type: integer
+ *                       example: 12
+ *                     tables:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                       example: [2, 5]
  *       400:
  *         description: Données invalides ou réservation non modifiable
  *       403:
  *         description: Accès refusé (ce n'est pas votre réservation)
  *       404:
  *         description: Réservation non trouvée
+ *       409:
+ *         description: Pas de tables disponibles pour ce créneau
  *       500:
  *         description: Erreur serveur
  */
@@ -334,7 +427,7 @@ router.put("/:id", async (req, res) => {
  * @swagger
  * /reservations/{id}:
  *   delete:
- *     summary: Supprimer une réservation
+ *     summary: Annuler une réservation
  *     tags: [Reservations]
  *     security:
  *       - bearerAuth: []
@@ -342,12 +435,12 @@ router.put("/:id", async (req, res) => {
  *       - name: id
  *         in: path
  *         required: true
- *         description: L'identifiant de la réservation à supprimer
+ *         description: L'identifiant de la réservation à annuler
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Réservation supprimée avec succès
+ *         description: Réservation annulée avec succès
  *         content:
  *           application/json:
  *             schema:
@@ -355,9 +448,9 @@ router.put("/:id", async (req, res) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Reservation deleted successfully"
+ *                   example: "Reservation cancelled successfully"
  *       404:
- *         description: Réservation non trouvée ou vous n'avez pas le droit de la supprimer
+ *         description: Réservation non trouvée ou vous n'avez pas le droit de l'annuler
  *       500:
  *         description: Erreur serveur
  */
@@ -394,7 +487,7 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
  *         required: true
  *         description: L'ID de la réservation à confirmer
  *         schema:
- *           type: string
+ *           type: integer
  *     responses:
  *       200:
  *         description: Réservation validée avec succès
@@ -405,8 +498,37 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: Reservation validated successfully
  *                 reservation:
  *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 18
+ *                     number_of_people:
+ *                       type: integer
+ *                       example: 10
+ *                     date:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-03-12T23:00:00.000Z"
+ *                     time:
+ *                       type: string
+ *                       example: "12:07:00"
+ *                     status:
+ *                       type: string
+ *                       example: confirmed
+ *                     comment:
+ *                       type: string
+ *                       example: Test reservation
+ *                     user_id:
+ *                       type: integer
+ *                       example: 12
+ *                     tables:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                       example: [1, 6]
  *       401:
  *         description: Non authentifié
  *       403:
@@ -438,26 +560,83 @@ router.patch("/:id/validate", adminMiddleware, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /reservations/{id}:
+ *   get:
+ *     summary: Récupérer une réservation par son ID (Admin uniquement)
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: L'ID de la réservation à récupérer
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Réservation récupérée avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 18
+ *                 number_of_people:
+ *                   type: integer
+ *                   example: 10
+ *                 date:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2026-03-12T23:00:00.000Z"
+ *                 time:
+ *                   type: string
+ *                   example: "12:07:00"
+ *                 status:
+ *                   type: string
+ *                   example: "confirmed"
+ *                 comment:
+ *                   type: string
+ *                   example: "Test reservation"
+ *                 user_id:
+ *                   type: integer
+ *                   example: 12
+ *                 tables:
+ *                   type: array
+ *                   items:
+ *                     type: integer
+ *                   example: [1, 6]
+ *       401:
+ *         description: Non authentifié
+ *       403:
+ *         description: Accès refusé - Droits administrateur requis
+ *       404:
+ *         description: Réservation non trouvée
+ *       500:
+ *         description: Erreur serveur
+ */
 router.get("/:id", adminMiddleware, async (req, res) => {
   const id = req.params.id;
   try {
-
     const [reservation] = await reservationRepository.getReservationById(id);
 
     if (!reservation) {
-      res.status(404).json({error : "Reservation not found"})
+      return res.status(404).json({ error: "Reservation not found" });
     }
 
-    const {tables_id, ...data} = reservation
+    const { tables_id, ...data } = reservation;
 
     res.status(200).json({
       ...data,
       tables: tables_id ? tables_id.split(',').map(Number) : []
-    })
+    });
   } catch (_) {
     res.status(500).json({ error: "Internal server error" });
   }
-  
-})
+});
 
 module.exports = router;

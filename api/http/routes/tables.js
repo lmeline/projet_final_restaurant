@@ -21,9 +21,7 @@ const { checkTablesAvailability, validateCreateTableRequest } = require("../vali
  *                 properties:
  *                   id:
  *                     type: integer
- *                   number:
- *                     type: integer
- *                   capacity:
+ *                   seats:
  *                     type: integer
  *       500:
  *         description: Erreur serveur
@@ -123,7 +121,7 @@ router.post("/", async(req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                 capacity:
+ *                 seats:
  *                   type: integer
  *       404:
  *         description: Table non trouvée

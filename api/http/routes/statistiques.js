@@ -6,10 +6,10 @@ const statRepository = new StatRepository(pool);
 
 /**
  * @swagger
- * /statistiques:
+ * /statistics:
  *   get:
  *     summary: Récupérer les statistiques d'activité (Admin uniquement)
- *     tags: [Admin]
+ *     tags: [Statistics]
  *     security:
  *       - bearerAuth: []
  *     parameters:
