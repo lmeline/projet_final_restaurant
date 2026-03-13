@@ -143,6 +143,7 @@ router.get("/:id", async(req, res) => {
             return res.status(404).json({ error: "Table not found" });
         }
         res.json(table);
+        eventBus.emit("table:getId:success", {tableId: id});
     } catch (error) {
         eventBus.emit("table:getId:failure", {error: error.message});
         res.status(500).json({ error: error.message });
