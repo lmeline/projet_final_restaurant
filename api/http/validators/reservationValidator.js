@@ -1,9 +1,8 @@
 const parseFields = require("./utils/requestParser");
 
-/** Function to check the validity of the request body for creating a reservation */
+/** Validate the body for creating a reservation. Returns the cleaned fields. */
 function validateCreateReservationRequest(body) {
-    let parsed = parseFields(body, ["number_of_people", "date", "time", "note"]);
-
+    const parsed = parseFields(body, ["number_of_people", "date", "time", "comment"]);
     if (parsed.error) {
         return parsed;
     }
@@ -19,65 +18,35 @@ function validateCreateReservationRequest(body) {
     if (typeof time !== "string" || !validateTime(time)) {
         return { error: "Field `time` is required and must be in format HH:MM" };
     }
-
     if (!isFuture(date, time)) {
         return { error: "Date and time must be in the future" };
     }
 
-    return body;
+    return parsed;
 }
 
-/** Function to check the validity of the request body for updating a reservation */
+/** Validate the body for updating a reservation. All fields are optional. */
 function validateUpdateReservationRequest(body) {
-    const allowedFields = ["number_of_people", "date", "time", "note"];
-    let parsed = parseFields(body, allowedFields);
-
+    const parsed = parseFields(body, ["number_of_people", "date", "time", "comment"]);
     if (parsed.error) {
         return parsed;
     }
 
-    if (body.number_of_people !== undefined) {
-        if (typeof body.number_of_people !== "number" || body.number_of_people <= 0) {
+    if (parsed.number_of_people !== undefined) {
+        if (typeof parsed.number_of_people !== "number" || parsed.number_of_people <= 0) {
             return { error: "Field `number_of_people` must be a number greater than 0" };
         }
     }
-
-    if (body.date !== undefined) {
-        if (!validateDate(body.date)) return { error: "Invalid date format" };
+    if (parsed.date !== undefined && !validateDate(parsed.date)) {
+        return { error: "Field `date` must be in format YYYY-MM-DD" };
+    }
+    if (parsed.time !== undefined && !validateTime(parsed.time)) {
+        return { error: "Field `time` must be in format HH:MM" };
     }
 
-    if (body.time !== undefined) {
-        if (!validateTime(body.time)) return { error: "Invalid time format" };
-    }
-
-    return body;
+    return parsed;
 }
 
-/** Check the ListReservations request */
-function validateListReservationsRequest(query) {
-    const validStatuses = ['pending', 'confirmed', 'cancelled'];
-    const filters = {};
-
-    // Validation du statut
-    if (query.status) {
-        if (!validStatuses.includes(query.status)) {
-            return { error: "Invalid status. Must be pending, confirmed, or cancelled." };
-        }
-        filters.status = query.status;
-    }
-
-    // Validation de la date
-    if (query.date) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(query.date)) {
-            return { error: "Invalid date format. Use YYYY-MM-DD." };
-        }
-        filters.date = query.date;
-    }
-
-    return filters; // Retourne uniquement les filtres validés
-}
-
-// Utility functions
 function validateDate(date) {
     return /^\d{4}-\d{2}-\d{2}$/.test(date);
 }
@@ -91,5 +60,4 @@ function isFuture(date, time) {
     return reservationDate > new Date();
 }
 
-
-module.exports = {validateCreateReservationRequest, validateUpdateReservationRequest, validateListReservationsRequest};
+module.exports = { validateCreateReservationRequest, validateUpdateReservationRequest };

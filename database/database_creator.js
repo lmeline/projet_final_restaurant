@@ -67,7 +67,14 @@ const sql_files = fs.readdirSync(path.join(__dirname, "sources"))
 
         const [insertedUserId] = await tempConnection.query("INSERT INTO users (email, password_hash, firstname, lastname, role) VALUES (?, ?, 'Client', 'Test', 'client')", [process.env.CLIENT_EMAIL, hashedPassword]);
 
-        const [insertedReservationId] = await tempConnection.query("INSERT INTO reservations (number_of_people, `date`, `time`, `status`, user_id, comment) VALUES (10, '2026-03-13', '12:07:00', 'pending', ?, 'Test reservation')", [insertedUserId.insertId])
+        const [insertedReservationId] = await tempConnection.query(
+            `INSERT INTO reservations (slot_id, user_id, number_of_people, starts_at, ends_at, status, comment)
+             VALUES (
+                (SELECT id FROM opening_slots WHERE date_time = '2026-07-13 12:00:00'),
+                ?, 10, '2026-07-13 12:30:00', '2026-07-13 14:30:00', 'pending', 'Test reservation'
+             )`,
+            [insertedUserId.insertId]
+        );
         await tempConnection.query("INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?,1), (?,6);", [insertedReservationId.insertId, insertedReservationId.insertId]);
 
         console.log(`Client ${process.env.CLIENT_EMAIL} created !`);

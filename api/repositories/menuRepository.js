@@ -1,28 +1,29 @@
-const db = require("./config/db");
+const db = require("../config/db");
+const MenuItem = require("../models/MenuItem");
 
 class MenuRepository {
     pool = db;
-    // Method to list all menu items with optional filters
-    async listMenu(parsedParams) {
-        let sqlQuery = "SELECT * FROM menu_items";
-        let filters = [];
-        let filtersValues = [];
 
-        if (parsedParams.category) {
-            filters.push(`category = ?`);
-            filtersValues.push(parsedParams.category);
+    async list(filters = {}) {
+        let sql = "SELECT * FROM menu_items";
+        const where = [];
+        const values = [];
+
+        if (filters.category) {
+            where.push("category = ?");
+            values.push(filters.category);
         }
-        if (parsedParams["max-price"]) {
-            filters.push(`price <= ?`);
-            filtersValues.push(parsedParams["max-price"]);
+        if (filters["max-price"] !== undefined) {
+            where.push("price_cents <= ?");
+            values.push(filters["max-price"]);
         }
 
-        if (filters.length > 0) {
-            sqlQuery += " WHERE " + filters.join(" AND ") + ";";
+        if (where.length > 0) {
+            sql += " WHERE " + where.join(" AND ");
         }
-        const rows = await this.pool.query(sqlQuery, filtersValues);
 
-        return rows;
+        const [rows] = await this.pool.query(sql, values);
+        return rows.map(MenuItem.fromRow);
     }
 }
 

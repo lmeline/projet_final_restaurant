@@ -1,49 +1,62 @@
-const db = require("./config/db");
+const db = require("../config/db");
+const DiningTable = require("../models/DiningTable");
 
 class TableRepository {
     pool = db;
 
-    // Method to list all tables
-    async listTables() {
-        const rows = await this.pool.query("SELECT * FROM `tables`;");
-        return rows;
+    async list() {
+        const [rows] = await this.pool.query("SELECT * FROM dining_tables");
+        return rows.map(DiningTable.fromRow);
     }
 
-    // Method to create a new table
-    async createTable(capacity) {
-        const [id] = await this.pool.query("INSERT INTO `tables` (seats) VALUES (?)", [capacity]);
-        return id;
+    async create({ seats, label = null }) {
+        const [result] = await this.pool.query(
+            "INSERT INTO dining_tables (seats, label) VALUES (?, ?)",
+            [seats, label]
+        );
+        return result.insertId;
     }
 
-    // Method to get a specific table by ID
-    async getTable(id) {
-        const [row] = await this.pool.query("SELECT * FROM `tables` WHERE id = ?", [id]);
-        return row;
+    async findById(id) {
+        const [rows] = await this.pool.query(
+            "SELECT * FROM dining_tables WHERE id = ?",
+            [id]
+        );
+        return rows.length ? DiningTable.fromRow(rows[0]) : null;
     }
-  
-  async getAvailableTables(date, time, reservation_id = null) {
 
-    const [rows] = await this.pool.query(`
-        SELECT 
-          t.id,
-          t.seats
-        FROM 
-          tables t
-        WHERE
-          t.id NOT IN (
-            SELECT rt.table_id FROM reservation_tables rt
-            JOIN reservations r ON rt.reservation_id = r.id
-            WHERE r.date = ?
-            AND r.status != 'cancelled'
-            AND r.time BETWEEN ? and ADDTIME(?, '2:00:00')
-            AND r.id != ?
-          )`,
-        [date, time, time, reservation_id]
-      );
+    /**
+     * Return the active tables that are free on the [startsAt, endsAt[ interval.
+     * Two reservations conflict on a table when their time intervals overlap:
+     *   r.starts_at < endsAt AND r.ends_at > startsAt
+     * When updating an existing reservation, pass its id to exclude it.
+     */
+    async findAvailable(startsAt, endsAt, excludeReservationId = null) {
+        let sql = `
+            SELECT t.id, t.seats
+            FROM dining_tables t
+            WHERE t.is_active = 1
+              AND t.id NOT IN (
+                  SELECT rt.table_id
+                  FROM reservation_tables rt
+                  JOIN reservations r ON rt.reservation_id = r.id
+                  WHERE r.status NOT IN ('cancelled', 'no_show')
+                    AND r.starts_at < ?
+                    AND r.ends_at > ?`;
+        const values = [endsAt, startsAt];
 
-      return rows;
+        if (excludeReservationId != null) {
+            sql += " AND r.id <> ?";
+            values.push(excludeReservationId);
+        }
+
+        sql += `
+              )
+            ORDER BY t.seats`;
+
+        const [rows] = await this.pool.query(sql, values);
+        return rows.map(DiningTable.fromRow);
     }
-    
 }
 
 module.exports = new TableRepository();

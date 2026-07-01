@@ -1,12 +1,29 @@
 const express = require("express");
 const router = express.Router();
-const reservationRepository = require("../../repositories/reservationRepository");
-const tableRepository = require("../../repositories/tableRepository");
+const reservationController = require("../../controllers/reservationController");
 const adminMiddleware = require("../middlewares/admin");
-const clientMiddleware = require("../middlewares/client");
-const {validateCreateReservationRequest, validateUpdateReservationRequest} = require("../validators/reservationValidator");
-const queryValidator = require("../validators/utils/queryValidator");
-const assignTables = require("../../utils/tableAssigner");
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Reservation:
+ *       type: object
+ *       properties:
+ *         id: { type: integer, example: 18 }
+ *         slot_id: { type: integer, example: 5 }
+ *         user_id: { type: integer, example: 12 }
+ *         number_of_people: { type: integer, example: 4 }
+ *         starts_at: { type: string, format: date-time, example: "2026-03-15 19:30:00" }
+ *         ends_at: { type: string, format: date-time, example: "2026-03-15 21:30:00" }
+ *         status: { type: string, enum: [pending, confirmed, seated, completed, cancelled, no_show] }
+ *         comment: { type: string, example: "Près de la fenêtre" }
+ *         cancelled_at: { type: string, format: date-time, nullable: true }
+ *         tables:
+ *           type: array
+ *           items: { type: integer }
+ *           example: [2, 5]
+ */
 
 /**
  * @swagger
@@ -19,16 +36,11 @@ const assignTables = require("../../utils/tableAssigner");
  *     parameters:
  *       - name: status
  *         in: query
- *         description: Filtrer par statut
- *         schema:
- *           type: string
- *           enum: [pending, confirmed, cancelled]
+ *         schema: { type: string, enum: [pending, confirmed, seated, completed, cancelled, no_show] }
  *       - name: date
  *         in: query
  *         description: Filtrer par date (YYYY-MM-DD)
- *         schema:
- *           type: string
- *           format: date
+ *         schema: { type: string, format: date }
  *     responses:
  *       200:
  *         description: Liste des réservations récupérée
@@ -36,75 +48,19 @@ const assignTables = require("../../utils/tableAssigner");
  *           application/json:
  *             schema:
  *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                     example: 18
- *                   number_of_people:
- *                     type: integer
- *                     example: 10
- *                   date:
- *                     type: string
- *                     format: date-time
- *                     example: "2026-03-12T23:00:00.000Z"
- *                   time:
- *                     type: string
- *                     example: "12:07:00"
- *                   status:
- *                     type: string
- *                     enum: [pending, confirmed, cancelled]
- *                     example: confirmed
- *                   comment:
- *                     type: string
- *                     example: Test reservation
- *                   user_id:
- *                     type: integer
- *                     example: 12
- *                   tables:
- *                     type: array
- *                     items:
- *                       type: integer
- *                     example: [1, 6]
- *       400:
- *         description: Paramètres de requête invalides
- *       401:
- *         description: Non authentifié
- *       403:
- *         description: Accès refusé - Droits administrateur requis
- *       500:
- *         description: Erreur serveur
+ *               items: { $ref: '#/components/schemas/Reservation' }
+ *       400: { description: Paramètres de requête invalides }
+ *       401: { description: Non authentifié }
+ *       403: { description: Accès refusé - Droits administrateur requis }
+ *       500: { description: Erreur serveur }
  */
-router.get("/", adminMiddleware, async (req, res) => {
-    let parsedParams = queryValidator(req.query, {
-      status: ["pending", "confirmed", "cancelled"],
-      date: "date"
-    })
-
-    if (parsedParams.error) {
-      return res.status(400).json(parsedParams) ;
-    }
-    try {
-      let [reservations] = await reservationRepository.listReservations(parsedParams);
-      
-      reservations = reservations.map(({ tables_id, ...rest }) => ({
-          ...rest,
-          tables: tables_id ? tables_id.split(',').map(Number) : []
-      }));
-      
-      res.json(reservations);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    } 
-});
-
+router.get("/", adminMiddleware, reservationController.list);
 
 /**
  * @swagger
- * /my-reservations:
+ * /reservations/my-reservations:
  *   get:
- *     summary: Récupérer mes propres réservations
+ *     summary: Récupérer ses propres réservations
  *     tags: [Reservations]
  *     security:
  *       - bearerAuth: []
@@ -115,67 +71,17 @@ router.get("/", adminMiddleware, async (req, res) => {
  *           application/json:
  *             schema:
  *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                     example: 18
- *                   number_of_people:
- *                     type: integer
- *                     example: 10
- *                   date:
- *                     type: string
- *                     format: date-time
- *                     example: "2026-03-12T23:00:00.000Z"
- *                   time:
- *                     type: string
- *                     example: "12:07:00"
- *                   status:
- *                     type: string
- *                     enum: [pending, confirmed, cancelled]
- *                     example: confirmed
- *                   comment:
- *                     type: string
- *                     example: Test reservation
- *                   user_id:
- *                     type: integer
- *                     example: 12
- *                   tables:
- *                     type: array
- *                     items:
- *                       type: integer
- *                     example: [1, 6]
- *       404:
- *         description: Aucune réservation trouvée pour cet utilisateur
- *       500:
- *         description: Erreur serveur
+ *               items: { $ref: '#/components/schemas/Reservation' }
+ *       404: { description: Aucune réservation trouvée pour cet utilisateur }
+ *       500: { description: Erreur serveur }
  */
-router.get("/my-reservations", async (req, res) => {
-    const user_id = req.user.id;
-    try {
-      let reservations = await reservationRepository.getReservationsForUser(user_id);
-      
-      if (reservations.length === 0) {
-        return res.status(404).json({ error: "No reservations found for this user" });
-      }
-      
-      reservations = reservations.map(({ tables_id, ...rest }) => ({
-          ...rest,
-          tables: tables_id ? tables_id.split(',').map(Number) : []
-      }));
-      
-      res.json(reservations);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+router.get("/my-reservations", reservationController.listMine);
 
 /**
  * @swagger
  * /reservations:
  *   post:
- *     summary: Créer une nouvelle réservation (Client uniquement)
+ *     summary: Créer une nouvelle réservation
  *     tags: [Reservations]
  *     security:
  *       - bearerAuth: []
@@ -185,95 +91,27 @@ router.get("/my-reservations", async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - number_of_people
- *               - date
- *               - time
+ *             required: [number_of_people, date, time]
  *             properties:
- *               number_of_people:
- *                 type: integer
- *                 example: 4
- *               date:
- *                 type: string
- *                 format: date
- *                 example: "2026-02-25"
- *               time:
- *                 type: string
- *                 example: "19:30"
- *               note:
- *                 type: string
- *                 example: "Près de la fenêtre, merci."
+ *               number_of_people: { type: integer, example: 4 }
+ *               date: { type: string, format: date, example: "2026-03-25" }
+ *               time: { type: string, example: "19:30" }
+ *               comment: { type: string, example: "Près de la fenêtre, merci." }
  *     responses:
  *       201:
  *         description: Réservation créée avec succès
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Reservation created successfully"
- *                 reservationId:
- *                   type: integer
- *                 tablesAssigned:
- *                   type: array
- *       400:
- *         description: Erreur de validation ou données invalides
- *       401:
- *         description: Authentification requise
- *       500:
- *         description: Erreur serveur
+ *       400: { description: Erreur de validation ou restaurant fermé }
+ *       401: { description: Authentification requise }
+ *       409: { description: Pas de table disponible ou réservation déjà existante }
+ *       500: { description: Erreur serveur }
  */
-router.post("/", async (req, res) => {
-    const validationResult = validateCreateReservationRequest(req.body);
-
-    if (validationResult.error) {
-        return res.status(400).json(validationResult);
-    }
-
-    const { number_of_people, date, time, note } = req.body;
-    const user_id = req.user.id;
-
-  try {
-
-    const restaurantIsOpen = await reservationRepository.checkOpenSlotAvailability(date, time);
-    if (!restaurantIsOpen) {
-      return res.status(400).json({ error: "Restaurant is closed at this time." });
-    }
-      
-    const availableTables = await tableRepository.getAvailableTables(date, time);
-    if (!availableTables) {
-      return res.status(409).json({ error: "Restaurant is full for this time slot." });
-    }
-      
-    const assignedTables = assignTables(availableTables, number_of_people);
-    if (!assignedTables) {
-      return res.status(409).json({ error: "No available tables for this number of people." });
-    }
-    
-    const reservation_id = await reservationRepository.createReservation(user_id, number_of_people, date, time, note, assignedTables);
-    const reservation = await reservationRepository.getReservationsForUser(reservation_id.id)
-
-    const { tables_id, ...data } = reservation;
-
-    res.status(201).json({
-      message: "Reservation created successfully",
-      reservation: {
-        ...data,
-        tables: tables_id ? tables_id.split(',').map(Number) : []
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+router.post("/", reservationController.create);
 
 /**
  * @swagger
  * /reservations/{id}:
  *   put:
- *     summary: Modifier une réservation existante
+ *     summary: Modifier une réservation existante (en attente uniquement)
  *     tags: [Reservations]
  *     security:
  *       - bearerAuth: []
@@ -281,9 +119,7 @@ router.post("/", async (req, res) => {
  *       - name: id
  *         in: path
  *         required: true
- *         description: L'identifiant de la réservation à modifier
- *         schema:
- *           type: integer
+ *         schema: { type: integer }
  *     requestBody:
  *       required: true
  *       content:
@@ -291,143 +127,26 @@ router.post("/", async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               number_of_people:
- *                 type: integer
- *                 example: 4
- *               date:
- *                 type: string
- *                 format: date
- *                 example: "2026-03-15"
- *               time:
- *                 type: string
- *                 example: "19:30:00"
- *               comment:
- *                 type: string
- *                 example: "Anniversaire"
+ *               number_of_people: { type: integer, example: 4 }
+ *               date: { type: string, format: date, example: "2026-03-15" }
+ *               time: { type: string, example: "19:30" }
+ *               comment: { type: string, example: "Anniversaire" }
  *     responses:
  *       200:
  *         description: Réservation mise à jour avec succès
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Reservation updated successfully
- *                 reservation:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 18
- *                     number_of_people:
- *                       type: integer
- *                       example: 4
- *                     date:
- *                       type: string
- *                       format: date-time
- *                       example: "2026-03-15T00:00:00.000Z"
- *                     time:
- *                       type: string
- *                       example: "19:30:00"
- *                     status:
- *                       type: string
- *                       example: pending
- *                     comment:
- *                       type: string
- *                       example: Anniversaire
- *                     user_id:
- *                       type: integer
- *                       example: 12
- *                     tables:
- *                       type: array
- *                       items:
- *                         type: integer
- *                       example: [2, 5]
- *       400:
- *         description: Données invalides ou réservation non modifiable
- *       403:
- *         description: Accès refusé (ce n'est pas votre réservation)
- *       404:
- *         description: Réservation non trouvée
- *       409:
- *         description: Pas de tables disponibles pour ce créneau
- *       500:
- *         description: Erreur serveur
+ *       400: { description: Données invalides ou réservation non modifiable }
+ *       403: { description: Accès refusé (ce n'est pas votre réservation) }
+ *       404: { description: Réservation non trouvée }
+ *       409: { description: Pas de tables disponibles pour ce créneau }
+ *       500: { description: Erreur serveur }
  */
-router.put("/:id", async (req, res) => {
-    const { id } = req.params; 
-    const newReservation = validateUpdateReservationRequest(req.body);
-    
-    if (newReservation.error) {
-        return res.status(400).json(newReservation);
-    }
-
-    const user_id = req.user.id;
-
-    try {
-      const [currentReservation] = await reservationRepository.getReservationById(id);
-
-      if (!currentReservation) {
-        return res.status(404).json({ error: "Reservation not found" });
-      }
-
-      if (currentReservation.user_id !== user_id && req.user.role !== "admin") {
-        return res.status(403).json({ error: "Access denied" });
-      }
-
-      if (currentReservation.status !== "pending") {
-        return res.status(400).json({ error: "Only pending reservations can be modified" });
-      }
-
-      let assignedTables = null;
-        
-      if (currentReservation.date !== newReservation.date
-        || currentReservation.time !== newReservation.time
-        || currentReservation.number_of_people !== newReservation.number_of_people
-      ) {
-        const restaurantIsOpen = await reservationRepository.checkOpenSlotAvailability(newReservation.date, newReservation.time);
-        if (!restaurantIsOpen) {
-          return res.status(400).json({ error: "Restaurant is closed at this time." });
-        }
-
-        const availableTables = await tableRepository.getAvailableTables(newReservation.date, newReservation.time, id);
-
-        if (!availableTables) {
-          return res.status(409).json({ error: "Restaurant is full for this time slot." });
-        }
-
-        assignedTables = assignTables(availableTables, newReservation.number_of_people)
-        
-        if (!assignedTables) {
-          return res.status(409).json({ error: "No available tables for this number of people." });
-        }
-      }
-
-      await reservationRepository.updateReservation(id, newReservation, assignedTables);
-
-      const updatedReservation = await reservationRepository.getReservationById(id);
-
-      const {tables_id, ...data} = updatedReservation;
-
-      res.json({
-          message: "Reservation updated successfully",
-          reservation: {
-            ...data,
-            tables: tables_id ? tables_id.split(',').map(Number) : []
-          }
-      });
-    } catch (_) {
-      res.status(500).json({ error: "Internal server error"});
-    }
-});
+router.put("/:id", reservationController.update);
 
 /**
  * @swagger
  * /reservations/{id}:
  *   delete:
- *     summary: Annuler une réservation
+ *     summary: Annuler une réservation (Admin uniquement)
  *     tags: [Reservations]
  *     security:
  *       - bearerAuth: []
@@ -435,43 +154,14 @@ router.put("/:id", async (req, res) => {
  *       - name: id
  *         in: path
  *         required: true
- *         description: L'identifiant de la réservation à annuler
- *         schema:
- *           type: string
+ *         schema: { type: integer }
  *     responses:
- *       200:
- *         description: Réservation annulée avec succès
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Reservation cancelled successfully"
- *       404:
- *         description: Réservation non trouvée ou vous n'avez pas le droit de l'annuler
- *       500:
- *         description: Erreur serveur
+ *       200: { description: Réservation annulée avec succès }
+ *       400: { description: ID invalide }
+ *       404: { description: Réservation non trouvée }
+ *       500: { description: Erreur serveur }
  */
-router.delete("/:id", adminMiddleware, async (req, res) => {
-    const id = req.params.id;
-
-    if (!id || Number.isNaN(Number(id))) {
-        return res.status(400).json({ error: "Reservation ID is required and must be a integer" });
-    }
-
-    try {
-        const result = await reservationRepository.deleteReservation(id);
-        if (result.affectedRows === 0) {
-            res.status(404).json({ error: "Reservation not found" });
-        } else {
-            res.json({ message: "Reservation cancelled successfully" });
-        }
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
+router.delete("/:id", adminMiddleware, reservationController.cancel);
 
 /**
  * @swagger
@@ -485,80 +175,13 @@ router.delete("/:id", adminMiddleware, async (req, res) => {
  *       - name: id
  *         in: path
  *         required: true
- *         description: L'ID de la réservation à confirmer
- *         schema:
- *           type: integer
+ *         schema: { type: integer }
  *     responses:
- *       200:
- *         description: Réservation validée avec succès
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Reservation validated successfully
- *                 reservation:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 18
- *                     number_of_people:
- *                       type: integer
- *                       example: 10
- *                     date:
- *                       type: string
- *                       format: date-time
- *                       example: "2026-03-12T23:00:00.000Z"
- *                     time:
- *                       type: string
- *                       example: "12:07:00"
- *                     status:
- *                       type: string
- *                       example: confirmed
- *                     comment:
- *                       type: string
- *                       example: Test reservation
- *                     user_id:
- *                       type: integer
- *                       example: 12
- *                     tables:
- *                       type: array
- *                       items:
- *                         type: integer
- *                       example: [1, 6]
- *       401:
- *         description: Non authentifié
- *       403:
- *         description: Accès refusé - Droits administrateur requis
- *       404:
- *         description: Réservation non trouvée
- *       500:
- *         description: Erreur serveur
+ *       200: { description: Réservation validée avec succès }
+ *       404: { description: Réservation non trouvée }
+ *       500: { description: Erreur serveur }
  */
-router.patch("/:id/validate", adminMiddleware, async (req, res) => {
-    const id = req.params.id;
-    try {
-        const [reservation] = await reservationRepository.validateReservation(id);
-        const {tables_id, ...data} = reservation
-
-        res.json({ 
-          message: "Reservation validated successfully", 
-          reservation : {
-            ...data,
-            tables: tables_id ? tables_id.split(',').map(Number) : []
-          }
-         });
-    } catch (error) {
-        if (error.message === "Reservation not found") {
-            res.status(404).json({ error: error.message });
-        } else {
-            res.status(500).json({ error: error.message });
-        }
-    }
-});
+router.patch("/:id/validate", adminMiddleware, reservationController.confirm);
 
 /**
  * @swagger
@@ -572,71 +195,16 @@ router.patch("/:id/validate", adminMiddleware, async (req, res) => {
  *       - name: id
  *         in: path
  *         required: true
- *         description: L'ID de la réservation à récupérer
- *         schema:
- *           type: integer
+ *         schema: { type: integer }
  *     responses:
  *       200:
  *         description: Réservation récupérée avec succès
  *         content:
  *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                   example: 18
- *                 number_of_people:
- *                   type: integer
- *                   example: 10
- *                 date:
- *                   type: string
- *                   format: date-time
- *                   example: "2026-03-12T23:00:00.000Z"
- *                 time:
- *                   type: string
- *                   example: "12:07:00"
- *                 status:
- *                   type: string
- *                   example: "confirmed"
- *                 comment:
- *                   type: string
- *                   example: "Test reservation"
- *                 user_id:
- *                   type: integer
- *                   example: 12
- *                 tables:
- *                   type: array
- *                   items:
- *                     type: integer
- *                   example: [1, 6]
- *       401:
- *         description: Non authentifié
- *       403:
- *         description: Accès refusé - Droits administrateur requis
- *       404:
- *         description: Réservation non trouvée
- *       500:
- *         description: Erreur serveur
+ *             schema: { $ref: '#/components/schemas/Reservation' }
+ *       404: { description: Réservation non trouvée }
+ *       500: { description: Erreur serveur }
  */
-router.get("/:id", adminMiddleware, async (req, res) => {
-  const id = req.params.id;
-  try {
-    const [reservation] = await reservationRepository.getReservationById(id);
-
-    if (!reservation) {
-      return res.status(404).json({ error: "Reservation not found" });
-    }
-
-    const { tables_id, ...data } = reservation;
-
-    res.status(200).json({
-      ...data,
-      tables: tables_id ? tables_id.split(',').map(Number) : []
-    });
-  } catch (_) {
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+router.get("/:id", adminMiddleware, reservationController.getById);
 
 module.exports = router;

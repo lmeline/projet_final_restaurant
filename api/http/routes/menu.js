@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const menuRepository = require("../../repositories/menuRepository");
-const queryValidator = require("../validators/utils/queryValidator");
+const menuController = require("../../controllers/menuController");
 
 /**
  * @swagger
@@ -12,15 +11,12 @@ const queryValidator = require("../validators/utils/queryValidator");
  *     parameters:
  *       - name: category
  *         in: query
- *         description: Filtrer par catégorie (entree, plat, dessert)
- *         schema:
- *           type: string
- *           enum: [entree, plat, dessert]
+ *         description: Filtrer par catégorie
+ *         schema: { type: string, enum: [entree, plat, dessert] }
  *       - name: max-price
  *         in: query
- *         description: Prix maximum souhaité
- *         schema:
- *           type: number
+ *         description: Prix maximum souhaité (en centimes)
+ *         schema: { type: integer }
  *     responses:
  *       200:
  *         description: Liste du menu groupée par catégories
@@ -29,39 +25,11 @@ const queryValidator = require("../validators/utils/queryValidator");
  *             schema:
  *               type: object
  *               example:
- *                 entree: [{ id: 1, name: "Salade", price: 12 }]
- *                 plat: [{ id: 5, name: "Steak", price: 25 }]
- *       400:
- *         description: Paramètres de filtrage invalides
- *       500:
- *         description: Erreur serveur
+ *                 entree: [{ id: 1, name: "Burrata Crémeuse", price_cents: 1100, category: "entree", is_available: true }]
+ *                 plat: [{ id: 5, name: "Burger Maison", price_cents: 1850, category: "plat", is_available: true }]
+ *       400: { description: Paramètres de filtrage invalides }
+ *       500: { description: Erreur serveur }
  */
-router.get("/", async (req, res) => {
-  let parsedParams = queryValidator(req.query, {
-    category: ["entree", "plat", "dessert"],
-    "max-price": "number",
-  });
-
-  if (parsedParams.error) {
-    res.status(400).json(parsedParams);
-    return;
-  }
-
-  try {
-    const [menu] = await menuRepository.listMenu(parsedParams);
-
-    let parsedMenu = {};
-    menu.forEach((item) => {
-      if (!parsedMenu[item.category]) {
-        parsedMenu[item.category] = [];
-      }
-      parsedMenu[item.category].push(item);
-    });
-
-    res.json(parsedMenu);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get("/", menuController.list);
 
 module.exports = router;

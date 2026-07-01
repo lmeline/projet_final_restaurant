@@ -1,200 +1,151 @@
-const db = require("./config/db");
+const db = require("../config/db");
+const Reservation = require("../models/Reservation");
+
+const SELECT_WITH_TABLES = `
+    SELECT r.*, GROUP_CONCAT(DISTINCT rt.table_id) AS tables_id
+    FROM reservations r
+    LEFT JOIN reservation_tables rt ON rt.reservation_id = r.id`;
 
 class ReservationRepository {
-  pool = db;
+    pool = db;
 
-  // Method to list all reservations
-  async listReservations(parsedParams) {
-    let sqlQuery = `SELECT
-      r.*,
-      group_concat(DISTINCT t.id) as tables_id
-    FROM reservations r
-    JOIN reservation_tables rt ON rt.reservation_id = r.id
-    JOIN \`tables\` t ON rt.table_id = t.id`;
-    let filters = [];
-    let filtersValues = [];
+    async list(filters = {}) {
+        let sql = SELECT_WITH_TABLES;
+        const where = [];
+        const values = [];
 
-    if (parsedParams.status) {
-            filters.push("status = ?");
-            filtersValues.push(parsedParams.status);
+        if (filters.status) {
+            where.push("r.status = ?");
+            values.push(filters.status);
+        }
+        if (filters.date) {
+            where.push("DATE(r.starts_at) = ?");
+            values.push(filters.date);
+        }
+
+        if (where.length > 0) {
+            sql += " WHERE " + where.join(" AND ");
+        }
+        sql += " GROUP BY r.id ORDER BY r.starts_at";
+
+        const [rows] = await this.pool.query(sql, values);
+        return rows.map(Reservation.fromRow);
     }
-    if (parsedParams.date) {
-            filters.push("date = ?");
-            const dateValue = (parsedParams.date instanceof Date) 
-            ? parsedParams.date.toISOString().split('T')[0] 
-            : parsedParams.date;
-            filtersValues.push(dateValue); 
-    }
 
-    if (filters.length > 0) {
-      sqlQuery += " WHERE " + filters.join(" AND ") + ";";
-    }
-    
-    sqlQuery += " GROUP BY r.id";
-
-    const rows = await this.pool.query(sqlQuery, filtersValues);
-    return rows;
-  }
-
-  // Method to get reservations for a user
-  async getReservationsForUser(user_id) {
-    const [rows] = await this.pool.query(
-      `SELECT
-        r.*,
-        group_concat(DISTINCT t.id) as tables_id
-      FROM reservations r
-      JOIN reservation_tables rt ON rt.reservation_id = r.id
-      JOIN \`tables\` t ON rt.table_id = t.id
-      WHERE r.user_id = ?
-      GROUP BY r.id`,
-      [user_id],
-    );
-
-    return rows;
-  }
-
-  // Method to create a new reservation
-  async createReservation(user_id, number_of_people, date, time, note, assignedTables) {
-    const connection = await this.pool.getConnection();
-    
-    try {
-        await connection.beginTransaction();
-
-        // 1. Vérifications de base 
-        const [users] = await connection.query("SELECT id FROM users WHERE id = ?", [user_id]);
-        if (users.length === 0) throw new Error("User does not exist.");
-
-        const [existing] = await connection.query(
-            "SELECT id FROM reservations WHERE user_id = ? AND date = ? AND time = ? AND status != 'cancelled'",
-            [user_id, date, time]
+    async findByUser(userId) {
+        const [rows] = await this.pool.query(
+            `${SELECT_WITH_TABLES} WHERE r.user_id = ? GROUP BY r.id ORDER BY r.starts_at`,
+            [userId]
         );
-        if (existing.length > 0) throw new Error("User already have a reservation at this time.");
+        return rows.map(Reservation.fromRow);
+    }
 
-        // Insérer la réservation
-        const [resRow] = await connection.query(
-            "INSERT INTO reservations (number_of_people, date, time, status, user_id, comment) VALUES (?, ?, ?, ?, ?, ?)",
-            [number_of_people, date, time, "pending", user_id, note]
+    async findById(id) {
+        const [rows] = await this.pool.query(
+            `${SELECT_WITH_TABLES} WHERE r.id = ? GROUP BY r.id`,
+            [id]
         );
-      
-        if (!resRow.insertId) throw new Error("Failed to create reservation.");
+        return rows.length ? Reservation.fromRow(rows[0]) : null;
+    }
 
-      for (const table of assignedTables) {
-          const [result] = await connection.query(
-                "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
-                [resRow.insertId, table.id]
+    async existsForUserAt(userId, startsAt) {
+        const [rows] = await this.pool.query(
+            `SELECT id FROM reservations
+             WHERE user_id = ? AND starts_at = ? AND status <> 'cancelled'`,
+            [userId, startsAt]
+        );
+        return rows.length > 0;
+    }
+
+    /**
+     * Create a reservation and its table links in a single transaction.
+     * @returns the inserted reservation id.
+     */
+    async create({ slotId, userId, numberOfPeople, startsAt, endsAt, comment, tableIds }) {
+        const connection = await this.pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [result] = await connection.query(
+                `INSERT INTO reservations
+                    (slot_id, user_id, number_of_people, starts_at, ends_at, status, comment)
+                 VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
+                [slotId, userId, numberOfPeople, startsAt, endsAt, comment ?? null]
             );
-            if (result.affectedRows != 1) throw new Error("Failed to create reservation..");
+
+            const reservationId = result.insertId;
+            await this.#insertTableLinks(connection, reservationId, tableIds);
+
+            await connection.commit();
+            return reservationId;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
         }
+    }
 
-        await connection.commit();
-        return { id: resRow.insertId };
+    /**
+     * Update a reservation. When `tableIds` is provided, the table links are
+     * fully replaced. The whole thing runs in a transaction.
+     */
+    async update(id, { numberOfPeople, startsAt, endsAt, slotId, comment }, tableIds = null) {
+        const connection = await this.pool.getConnection();
+        try {
+            await connection.beginTransaction();
 
-      } catch (error) {
-          await connection.rollback();
-          throw error;
-      } finally {
-          connection.release();
-      }
-  }
+            if (tableIds) {
+                await connection.query(
+                    "DELETE FROM reservation_tables WHERE reservation_id = ?",
+                    [id]
+                );
+                await this.#insertTableLinks(connection, id, tableIds);
+            }
 
-  //Method to update a reservation by ID
-  async updateReservation(id, newReservation, assignedTables = null) {
-    const connection = await this.pool.getConnection();
-    
-    try {
-      await connection.beginTransaction();
-      if (assignedTables) {
-        
-        await connection.query(
-          "DELETE FROM reservation_tables WHERE reservation_id = ?",
-          [id]
-        )
-  
-        for (const table of assignedTables) {
-          const [result] = await connection.query(
-            "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
-            [id, table.id]
-          );
-          if (result.affectedRows != 1) throw new Error("Failed to update reservation.");
+            await connection.query(
+                `UPDATE reservations
+                 SET number_of_people = ?, starts_at = ?, ends_at = ?, slot_id = ?, comment = ?
+                 WHERE id = ?`,
+                [numberOfPeople, startsAt, endsAt, slotId, comment ?? null, id]
+            );
+
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
         }
-      }
-
-      const [result] = await connection.query(
-        `UPDATE reservations 
-        SET number_of_people = ?, date = ?, time = ?, comment = ?
-        WHERE id = ?`,
-        [newReservation.number_of_people, newReservation.date, newReservation.time, newReservation.note, id]
-      )
-
-      if (result.affectedRows != 1) throw new Error("Failed to update reservation.")
-      
-      await connection.commit();
-      
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
     }
-  }
 
-  // Method to delete a reservation by ID
-  async deleteReservation(id) {
-      const result = await this.pool.query(
-        "UPDATE reservations SET status = 'cancelled' WHERE id = ?",
-        [id],
-      );
-    
-      return result
-  }
+    async cancel(id) {
+        const [result] = await this.pool.query(
+            "UPDATE reservations SET status = 'cancelled', cancelled_at = NOW() WHERE id = ?",
+            [id]
+        );
+        return result.affectedRows;
+    }
 
-  // Method to validate a reservation by ID
-  async validateReservation(id) {
-    const [reservation] = await this.pool.query(
-      "SELECT * FROM reservations WHERE id = ?",
-      [id],
-    );
-    if (reservation.length === 0) {
-      throw new Error("Reservation not found");
+    async confirm(id) {
+        const [result] = await this.pool.query(
+            "UPDATE reservations SET status = 'confirmed' WHERE id = ?",
+            [id]
+        );
+        return result.affectedRows;
     }
-    await this.pool.query(
-      "UPDATE reservations SET status = 'confirmed' WHERE id = ?",
-      [id],
-    );
-    return reservation;
-  }
-  
-  async checkOpenSlotAvailability(date, time) {
-    const [slot] = await this.pool.query(
-      `select 
-        IF(COUNT(os.id) > 0, 1, 0) as availability
-      from opening_slots os
-      where 
-        TIMESTAMP(?, ?) BETWEEN os.date_time and DATE_ADD(os.date_time, INTERVAL os.duration MINUTE)`,
-      [date, time])
-    
-    return slot[0].availability === 1;
-  }
-  
-  async getReservationById(id) {
-    const [reservation] = await this.pool.query(
-      `SELECT
-        r.*,
-        group_concat(DISTINCT t.id) as tables_id
-      FROM reservations r
-      JOIN reservation_tables rt ON rt.reservation_id = r.id
-      JOIN \`tables\` t ON rt.table_id = t.id
-      WHERE r.id = ?
-      GROUP BY r.id`,
-      [id],
-    );
-    if (reservation.length === 0) {
-      throw new Error("Reservation not found");
+
+    async #insertTableLinks(connection, reservationId, tableIds) {
+        for (const tableId of tableIds) {
+            const [result] = await connection.query(
+                "INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)",
+                [reservationId, tableId]
+            );
+            if (result.affectedRows !== 1) {
+                throw new Error("Failed to link reservation to table " + tableId);
+            }
+        }
     }
-    return reservation;
-  }
-  
-  
 }
 
 module.exports = new ReservationRepository();

@@ -1,36 +1,36 @@
-const db = require("./config/db");
+const db = require("../config/db");
+const User = require("../models/User");
 
 class UserRepository {
     pool = db;
 
-    // Method to list all users
-    async listUser() {
-        const rows = await this.pool.query("SELECT id, firstname, lastname, phone, email, role FROM users where role = 'client'");
-        return rows;
+    async listClients() {
+        const [rows] = await this.pool.query(
+            `SELECT id, firstname, lastname, phone, email, role
+             FROM users
+             WHERE role = 'client'`
+        );
+        return rows.map(User.fromRow);
     }
 
-    // Method to get a specific user by email
-    async getUserByEmail(email) {
-        const [row] = await this.pool.query(`
-            SELECT id, firstname, lastname, phone, email, role 
-            FROM users 
-            WHERE email = ?`, 
+    async findByEmail(email) {
+        const [rows] = await this.pool.query(
+            `SELECT id, firstname, lastname, phone, email, password_hash, role
+             FROM users
+             WHERE email = ?`,
             [email]
         );
-        return row;
+        return rows.length ? User.fromRow(rows[0]) : null;
     }
 
-    // Method to get a specific user by ID
-    async createUser(firstname, lastname, email, phone, password_hash) {
-        const [id] = await this.pool.query(`
-            INSERT INTO users (firstname, lastname, email, phone, password_hash) VALUES 
-            (?, ?, ?, ?, ?)`, 
-            [firstname, lastname, email, phone, password_hash]
+    async create({ firstname, lastname, email, phone, passwordHash }) {
+        const [result] = await this.pool.query(
+            `INSERT INTO users (firstname, lastname, email, phone, password_hash)
+             VALUES (?, ?, ?, ?, ?)`,
+            [firstname, lastname, email, phone ?? null, passwordHash]
         );
-
-        return id;
+        return result.insertId;
     }
-
 }
 
 module.exports = new UserRepository();
