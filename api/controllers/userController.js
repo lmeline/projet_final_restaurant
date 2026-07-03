@@ -5,7 +5,7 @@ async function list(req, res) {
         const users = await userRepository.listClients();
         res.json(users);
     } catch (error) {
-        res.status(500).json({ error: "Internal server error" });
+        res.status(500).json({ error: "Erreur interne du serveur" });
     }
 }
 

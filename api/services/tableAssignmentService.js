@@ -33,13 +33,13 @@ async function planAssignment({ date, time, numberOfPeople, excludeReservationId
 
     const slot = await openingSlotRepository.findCovering(startsAt);
     if (!slot) {
-        throw new DomainError(400, "Restaurant is closed at this time.");
+        throw new DomainError(400, "Le restaurant est fermé à ce créneau.");
     }
 
     const availableTables = await tableRepository.findAvailable(startsAt, endsAt, excludeReservationId);
     const tables = assignTables(availableTables, numberOfPeople);
     if (!tables) {
-        throw new DomainError(409, "No available tables for this number of people.");
+        throw new DomainError(409, "Aucune table disponible pour ce nombre de personnes.");
     }
 
     return { slotId: slot.id, startsAt, endsAt, tables };

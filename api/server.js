@@ -32,7 +32,7 @@ app.use("/statistics", authMiddleware, adminMiddleware, loggerMiddleware, statis
 
 app.get("/", (req, res) => {
   res.send({
-    greetings: "Welcome to API Restaurant :)",
+    greetings: "Bienvenue sur l'API Restaurant :)",
   });
 });
 
