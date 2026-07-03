@@ -155,10 +155,15 @@ async function cancel(req, res) {
     }
 
     try {
-        const affected = await reservationRepository.cancel(id);
-        if (affected === 0) {
+        const reservation = await reservationRepository.findById(id);
+        if (!reservation) {
             return res.status(404).json({ error: "Reservation not found" });
         }
+        if (!reservation.belongsTo(req.user.id) && req.user.role !== "admin") {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        await reservationRepository.cancel(id);
         res.json({ message: "Reservation cancelled successfully" });
     } catch (error) {
         handleError(res, error);

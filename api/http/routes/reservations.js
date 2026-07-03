@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const reservationController = require("../../controllers/reservationController");
+const authMiddleware = require("../middlewares/auth");
 const adminMiddleware = require("../middlewares/admin");
 
 /**
@@ -146,7 +147,7 @@ router.put("/:id", reservationController.update);
  * @swagger
  * /reservations/{id}:
  *   delete:
- *     summary: Annuler une réservation (Admin uniquement)
+ *     summary: Annuler une réservation (Admin ou client propriétaire)
  *     tags: [Reservations]
  *     security:
  *       - bearerAuth: []
@@ -158,10 +159,11 @@ router.put("/:id", reservationController.update);
  *     responses:
  *       200: { description: Réservation annulée avec succès }
  *       400: { description: ID invalide }
+ *       403: { description: Accès refusé (ce n'est pas votre réservation) }
  *       404: { description: Réservation non trouvée }
  *       500: { description: Erreur serveur }
  */
-router.delete("/:id", adminMiddleware, reservationController.cancel);
+router.delete("/:id", authMiddleware, reservationController.cancel);
 
 /**
  * @swagger
